@@ -1,0 +1,4 @@
+Fix the keyboard, sticky 'I' key
+
+On boot, load the VT100 app over the remote/printer port
+

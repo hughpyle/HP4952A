@@ -19,4 +19,4 @@
 
 * [Hackaday - David Kuder](https://hackaday.io/project/162448-hacking-the-4952)
 * [GitHub - David Kuder](https://github.com/dkgrizzly/4952oss)
-
+* [Hackaday - Trevor Johansen Aase](https://hackaday.io/project/163027-hp-4952a-turned-general-purpose-cpm-machine)
