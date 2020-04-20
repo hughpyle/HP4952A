@@ -1,0 +1,1 @@
+(c) Copyright Hewlett-Packard Co 1988
