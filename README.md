@@ -19,4 +19,6 @@
 
 * [Hackaday - David Kuder](https://hackaday.io/project/162448-hacking-the-4952)
 * [GitHub - David Kuder](https://github.com/dkgrizzly/4952oss)
-* [Hackaday - Trevor Johansen Aase](https://hackaday.io/project/163027-hp-4952a-turned-general-purpose-cpm-machine)
+* [Hackaday - Trevor Johansen Aase](https://hackaday.io/project/163027-hp-4952a-turned-general-purpose-cpm-machine), includes a good section on `dosbox` to run 5XREMOTE
+* [Reddit - Trevor Johansen Aase](https://www.reddit.com/r/cpm/comments/aa13nk/turning_an_hp_4952a_protocol_analyzer_into_a_cpm/)
+* [Twitter - Mark J. Blair](https://twitter.com/nf6x/status/995778707011731456)
