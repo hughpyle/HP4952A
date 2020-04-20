@@ -1,0 +1,3 @@
+ENHANC_X25   Enhanced X.25 Analysis  Rev 2727
+DISP_DEFS    ENHANC_X25 DISPLAY DEFINITIONS  
+X25_DATA     SAMPLE X.25 DATA                
