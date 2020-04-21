@@ -1,6 +1,6 @@
 Test Library and Emulator
 
-![disk](4952A_Discs-18267-16002.jpg)
+![disk](4952A_Discs-18267-16001.jpg)
 
 ```
 X25_EMULAT   X.25 Level 2 Emulator Rv A.01.01

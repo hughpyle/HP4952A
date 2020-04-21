@@ -1,6 +1,6 @@
 Enhanced X.25 Analysis
 
-![disk](4952A_Discs-18266-16002.jpg)
+![disk](4952A_Discs-18266-16001.jpg)
 
 ```
 ENHANC_X25   Enhanced X.25 Analysis  Rev 2727

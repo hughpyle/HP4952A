@@ -1,5 +1,7 @@
 HP 4951C Demo Disc
 
+[Demo Disc](4951-4952_DemoDiscs-18241-16003.jpg)
+
 ```
 COP1_data    Sample COP (BSC ASCII) Data     
 COP2_data    Sample COP (BSC EBCDIC) Data    

@@ -1,6 +1,6 @@
 DOCMP Analysis
 
-![disk](4952A_Discs-18265-16002.jpg)
+![disk](4952A_Discs-18265-16001.jpg)
 
 ```
 DDCMP4952    DDCMP DECODE/SIMULATE       2716
