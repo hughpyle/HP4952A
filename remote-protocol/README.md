@@ -33,18 +33,26 @@ Each message (request and response) follows a pattern:
 Msg Hdr:        0x96 0x96 0x96 0x96
 Cmd Hdr:        0x81 0x04 0xc0 0x00 0x00 0x00
 CRC-16:         0xd3 0xd1
-Cmd Text:       0x49 0x44 0x52 0x45
+Cmd Data:       0x49 0x44 0x52 0x45
 CRC-16:         0xaa 0xda
 ```
 
 * `Msg Hdr` is 4 bytes 0x96
 * `Cmd Hdr` is 6 bytes,
-    - 81 - unsure (other values seen: 0x05)
-    - 04 - length of the data area to follow
-    - c0 00 00 00 - unusure (other values seen: 40 00 00 00; c0 01 00 00)
+    - 81 xx aa bb cc dd: packet with data area
+        * xx = length of the data area to follow (0 means 256 bytes)
+        * aa = continuation code
+        * bb = sequence number?
+        * cc, dd spare?
+    - 05 zz aa bb cc dd: packet with no data area
+        * zz = 01: success, 02: failure
+        * aa = continuation code
+        * bb = sequence number
+        * cc, dd spare?
+    - the example above shows: 4 bytes of data to follow, no continuation packet expected
 * Then a CRC-16 checksum of the `Cmd Hdr`
-* `Cmd Text` is ASCII ("IDRE" in this example, which maybe means "identify remote")
-* Then a CRC-16 checksum of the `Cmd Text`.
+* `Cmd Data` is binary or ASCII ("IDRE" in this example, which is the command "identify remote")
+* Then a CRC-16 checksum of the `Cmd Data`.
 
 ## Remote Commands
 
