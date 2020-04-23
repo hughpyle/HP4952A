@@ -214,7 +214,7 @@ class HpMessage():
         return self.data.decode("ASCII")
 
     def packet(self):
-        # reconstruct the whole packet
+        # (re)construct the whole packet
         intro = bytes([self._intro1(), self._intro2(), self.cont, self.seqno, 0, 0])
         if self.data is None:
             pack = self.PREAMBLE + intro + crc_16(intro) + b'\x00\x00'
@@ -269,6 +269,10 @@ class HpMessage():
             # we just want to send a "ok, and...?" message
             it.cont = HpMessage.CONT_AND
         else:
+            if isinstance(data, str):
+                data = data.encode("ASCII")
+            if isinstance(more, str):
+                more = more.encode("ASCII")
             if len(data) <= 256:
                 it.data = data
                 if more is None:
@@ -358,13 +362,13 @@ class HpMessage():
         self.seqno = intro[3]       # sequence numbering for 0x41 and 0xc1
 
         self.status = (self.cont == 0xc0 or self.cont == 0xc1)
-        if datacode==5:
+        if datacode == 5:
             # 0x0501 is success with no data
             # 0x0502 is failure with no data (ask for re-send)
             databuff = None
             datalen = 0
         else:
-            if datalen==0:
+            if datalen == 0:
                 # Zero means 256 bytes of data
                 datalen = 256
             databuff = data[index:index+datalen]
@@ -471,17 +475,35 @@ CMD4 = b'\x81\x04\xc0\x00\x00\x00'
 @click.argument("speed", default=9600)
 def main(port, speed):
 
-    # 
-    IDRE = HEADER + CMD4 + crc_16(CMD4) + b'IDRE' + crc_16(b'IDRE')
+    # Ask the remote for its ID
+    command = HpMessage.create(data='IDRE')
 
-    with serial.Serial(port, speed, timeout=1) as ser:
+    with serial.Serial(port, speed, timeout=3) as ser:
 
-        ser.write(IDRE)
-        # Wait for data
+        print(f"Sending '{command.text}'")
+        ser.write(command.packet())
+
+        # Wait for data within the timeout
         while 1:
-            s = ser.read(256)
-            print(s)
+            data = ser.read(256)
+            # print(data)
+            response = HpMessage.from_bytes(data)
+
+            #if response.cont == HpMessage.CONT_PARTIAL_DATA:
+            # keep going until we got the chain of data
+            # (TODO: have the chain present as a single big buffer)
+
+            if response.data:
+                print(f"Received '{response.text}'")
+
+            if response.cont == HpMessage.CONT_AND:
+                ser.write(HpMessage.create().packet())
+
+            if response.cont == HpMessage.CONT_FIN:
+                # done
+                break
 
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
