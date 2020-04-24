@@ -67,13 +67,13 @@ Observing the log data and using `strings` on 5XREMOTE shows these commands belo
 | EXRU | Execute Run Menu | This function will remotely execute the current run menus.  These include the setup, data, monitor, simulate, run, and display menus.  Use the Reset Slave command (not available on an HP4951C) to halt execution. |
 | IDRE | Display Identity | This function will identify the remote instrument by model number.  It can be used as a simple function to verify cable connections, baud rates, and remote addresses. |
 | LOKB | Lock Remote Keyboard | This function will lock the instrument's keyboard.  This operation is required on most remote operations on a HP4953A or HP4954A. |
-| RCAH | Download Application Header (?) ||
+| RCAH | Download Application Header (?) | _Before downloading an application, this sends the application header (description text)._ |
 | RCAL | Download Setup, Monitor, Simulate, Run and Display Menus | This function will download a menu file that was previously uploaded into a DOS file.  The menus downloaded are the setup, monitor, simulate, run and display menus.  You can use this to configure the protocol analyzer.  To find out more information about menu compatibility between different model protocol analyzers please refer to the operating note. |
 | RCAP | Download Application Module | This function will download an application program that is stored in a DOS file to the remote instrument.  Remember that application programs are not compatible between different protocol analyzers. |
 | RCCD | Download Captured Data | This function will download buffer data from a DOS file the remote protocol analyzer's capture buffer.  You can then view the data in the examine data menu of the protocol analyzer's capture buffer. |
 | RSRE | Reset Remote | This function will reset the remote instrument, or stop the execution of a menu or application.  If stopping a menu or application, issue the function again to put the instrument in its top level menu. (Not valid on an HP4951C) |
 | SEAP | Set Application Name ||
-| SEBL | Set Application Header (?) | |
+| SEBL | Set Application Header (?) | _When downloading an application, this command is a "block header" that includes a counter for the block being downloaded, and a flag indicating whether it's finished._ |
 | SEBS | Set Buffer Size | This function will change the allocation of memory set aside for application programs versus the data capture buffer.  This operation is valid only for the HP4953A and HP4954A.  You may set the data capture buffer size in 8KB increments from 16KB to 256KB.  The tradeoff is that memory available for other functions decreases by a proportional amount. |
 | TRAD | Display Application Module Catalog | This function will upload the remote instrument's application module catalog. This will help you determine which applications are resident on the remote instrument. |
 | TRAH | Upload Application Header (?) | |
@@ -83,4 +83,8 @@ Observing the log data and using `strings` on 5XREMOTE shows these commands belo
 | TRCD | Upload Captured Data | This function will upload buffer data from the remote protocol analyzer into a DOS file.  You will be prompted for start and ending block numbers, and a file name.  This function tries to get the instrument's current block limits by first uploading memory statistics.  If you get the 'link error' message, please check the instrument's connections and baud rates, and correct the problem before proceeding. |
 | TRRS | ? ||
 | TRTC | Display Timers and Counters | This function will upload the remote instrument's timer and counter values. There are five counters and five timers. |
+
+## Try it!
+
+This [small python application](test.py) downloads a copy of the [VT100 app](../disks/04952-16009_utility_051690/VT100.APP) to the analyzer and runs it!
 
