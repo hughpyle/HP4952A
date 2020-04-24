@@ -56,7 +56,7 @@ CRC-16:         0xaa 0xda
 
 ## Remote Commands
 
-Observing the log data and using `strings` on 5XREMOTE shows these commands:
+Observing the log data and using `strings` on 5XREMOTE shows these commands below.  ("Upload" and "Download" are from the perspective of the analyzer).  I assume that one analyzer can control another using the same protocol.
 
 | code | name | description |
 | --- | --- | --- |
