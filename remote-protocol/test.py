@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import os
 import sys
 import serial
 import click
 
+# --- Captured message samples ---
 
 # reset the remote analyzer
 CMD_RSRE       = b'\x96\x96\x96\x96\x81\x04\xc0\x00\x00\x00\xd3\xd1\x52\x53\x52\x45\x1c\x3a'
@@ -44,6 +46,7 @@ CMD_SEAP       = b'\x96\x96\x96\x96\x81\x04\x40\x00\x00\x00\xfa\x11\x53\x45\x41\
 CO_SEAP0       = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55\xff'
 # tell it the VT100
 CMD_SEAP_PART2 = b'\x96\x96\x96\x96\x81\x12\xc0\x01\x00\x00\xcb\xd2\x20\x20\x20\x20\x20\x20\x20\x20\x56\x54\x31\x30\x30\x20\x20\x20\x20\x20\x16\x5c'
+#                                                                    sp  sp  sp  sp  sp  sp  sp  sp  V   T   1   0   0   sp  sp  sp  sp  sp  
 # ACC response from SEAP0 VT100
 RSP__ACC       = b'\x96\x96\x96\x96\x81\x03\xc0\x00\x00\x00\x66\x11\x41\x43\x43\x20\xd5'
 
@@ -80,6 +83,7 @@ CMD_RCAH       = b'\x96\x96\x96\x96\x81\x04\x40\x00\x00\x00\xfa\x11\x52\x43\x41\
 CMD_RCAH_RESP1 = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55'
 # with the app description (first x80 bytes)
 CMD_RCAH_PART2 = b'\x96\x96\x96\x96\x81\x80\xc0\x01\x00\x00\x72\x0f\x00\x00\x58\x00\x20\x20\x20\x20\x20\x20\x20\x20\x54\x45\x52\x4d\x49\x4e\x41\x4c\x20\x20\x34\x39\x35\x32\x20\x20\x00\x08\x00\x01\x41\x73\x79\x6e\x63\x20\x54\x65\x72\x6d\x69\x6e\x61\x6c\x20\x45\x6d\x75\x6c\x61\x74\x6f\x72\x20\x2d\x20\x44\x55\x4d\x42\x20\x20\x00\x00\x00\x00\x00\x00\x00\xc3\x97\xa4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\xba\xf7\x4b\x56'
+#                                                                    ^                                               T   E   R   N   I   N   A   L
 CMD_RCAH_R2ACC = b'\x96\x96\x96\x96\x81\x03\xc0\x00\x00\x00\x66\x11\x41\x43\x43\x20\xd5'
 # then a SEBL (Set Application Header)
 CMD_SEBL       = b'\x96\x96\x96\x96\x81\x04\x40\x00\x00\x00\xfa\x11\x53\x45\x42\x4c\x31\xc4'
@@ -92,12 +96,15 @@ CMD_RCAP_RESP1 = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55'
 # this looks like the app start, all over (same data as CMD_RCAH_PART2, then more)
 # note the \x41 means something like "this is partial data" with a seqno
 CMD_RCAP_PART2 = b'\x96\x96\x96\x96\x81\x00\x41\x01\x00\x00\x5b\xed\x00\x00\x58\x00\x20\x20\x20\x20\x20\x20\x20\x20\x54\x45\x52\x4d\x49\x4e\x41\x4c\x20\x20\x34\x39\x35\x32\x20\x20\x00\x08\x00\x01\x41\x73\x79\x6e\x63\x20\x54\x65\x72\x6d\x69\x6e\x61\x6c\x20\x45\x6d\x75\x6c\x61\x74\x6f\x72\x20\x2d\x20\x44\x55\x4d\x42\x20\x20\x00\x00\x00\x00\x00\x00\x00\xc3\x97\xa4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\xba\xf7\x61\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x2d\x00\x00\x36\xc1\x02\x2d\x00\x00\x70\xc1\x02\x2d\x00\x00\x96\xc1\x50\x2d\x00\x00\x9d\xc1\x02\x2d\x00\x00\x07\xc3\x02\x2d\x00\x00\x0d\xc3\x54\x2e\x00\x00\x14\xc3\x02\x2d\x00\x00\x1a\xc3\x02\x2d\x00\x00\x39\xc3\x02\x2d\x00\x00\x47\xc3\x02\x2d\x00\x00\x50\xc3\x02\x2d\x00\x00\x5e\xc3\x3c\x2e\x00\x00\x1b\xc4\x3c\x2e\x00\x00\x1d\xc4\x3c\x2e\x00\x00\x1f\xc4\x3c\x2e\x00\x00\x21\xc4\x3c\x2e\x00\x00\x23\xc4\x3c\x2e\x00\x00\x25\xc4\x3c\x2e\x00\x00\xda\x84'
+#                        this appears in VT100.APP at offset 0x0120  ^  onward (not sure why it starts at that offset)
 CMD_RCAP_RESP2 = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55'
 CMD_RCAP_PART3 = b'\x96\x96\x96\x96\x81\x00\x41\x02\x00\x00\xab\xed\x27\xc4\x3c\x2e\x00\x00\x29\xc4\x3c\x2e\x00\x00\x2b\xc4\x42\x2e\x00\x00\x2d\xc4\x42\x2e\x00\x00\x2f\xc4\x42\x2e\x00\x00\x31\xc4\x42\x2e\x00\x00\x33\xc4\x42\x2e\x00\x00\x35\xc4\x42\x2e\x00\x00\x37\xc4\x42\x2e\x00\x00\x39\xc4\x42\x2e\x00\x00\x3b\xc4\x42\x2e\x00\x00\x3d\xc4\x02\x2d\x00\x00\xd7\xc8\x3a\x2e\x00\x00\xf4\xc8\x02\x2d\x00\x00\x32\xc9\x02\x2d\x00\x00\x3b\xc9\x38\x2d\x00\x00\x3e\xc9\x02\x2d\x00\x00\x48\xc9\x50\x2d\x00\x00\x54\xc9\x60\x2e\x00\x00\xfd\xc9\x60\x2e\x00\x00\x09\xca\x60\x2e\x00\x00\x15\xca\x60\x2e\x00\x00\x21\xca\x60\x2e\x00\x00\x2d\xca\x60\x2e\x00\x00\x39\xca\x60\x2e\x00\x00\x45\xca\x60\x2e\x00\x00\x51\xca\x60\x2e\x00\x00\x5d\xca\xf8\x2d\x00\x00\xf7\xca\xea\x2d\x00\x00\xfa\xca\x02\x2e\x00\x00\x1d\xcb\xd0\x2d\x00\x00\x20\xcb\x32\x2d\x00\x00\x9c\xa4\x6e\x2e\x00\x00\x9f\xa4\x66\x2e\x03\x00\xa2\xa4\x66\x2e\x03\x00\xac\xa4\x66\x2e\x04\x00\xb2\xa4\x32\x2e\x00\x00\xc9\xa4\xb2\x2e\x00\x00\xd9\xa4\xda\x2e\x00\x00\xdc\xa4\x98\x2e\x00\x00\xdf\xa4\xdc\x2e\x00\x00\xe2\xa4\x6c\x2d\x00\x00\x06\xa5\xce\x2e\xd0\x0c'
+#                        this appears in VT100.APP at offset 0x0220  ^  onward (we're sending 256 bytes per packet)
 # (and so on - skip several packets)
-# finally we get ACC (but how did it know the packet count??)
 # note the \xc1 means something like "and this is the final data" with a seqno
 CMD_RCAP_PARTN = b'\x96\x96\x96\x96\x81\x00\xc1\x08\x00\x00\xa2\x2f\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\x20\x83\xf8\x31'
+#                        this appears in VT100.APP at offset 0x4820  ^  which is coming up to the end
+# and we get ACC at the end
 CMD_RCAP_RNACC = b'\x96\x96\x96\x96\x81\x03\xc0\x00\x00\x00\x66\x11\x41\x43\x43\x20\xd5'
 
 
@@ -187,6 +194,9 @@ CMD_TRAL_RESP9 = b'\x96\x96\x96\x96\x81\x00\x41\x06\x00\x00\xea\x2c\x00\x00\x00\
 # all finally ends at 15332
 
 
+# --- Message class, to parse and create messages ---
+
+
 class MessageFormatException(Exception):
     pass
 
@@ -207,6 +217,19 @@ class HpMessage():
         self.seqno: int = 0
         self.data: bytes = None
         self.rest: bytes = None
+
+    def __str__(self):
+        if self.data is None:
+            d = "no"
+        else:
+            d = len(self.data)
+        return "data={0} bytes, {1} {2}, cont={3}, seq={4}".format(
+            d,
+            self._intro1(),
+            self._intro2(),
+            self.cont,
+            self.seqno
+        )
 
     @property
     def text(self):
@@ -235,7 +258,11 @@ class HpMessage():
             else:
                 return 0x02
         else:
-            return len(self.data)
+            qty = len(self.data)
+            if qty == 256:
+                return 0
+            else:
+                return qty
 
     @staticmethod
     def create(status:bool=True, data:bytes=None, more:bytes=None, seqno:int=0):
@@ -253,26 +280,47 @@ class HpMessage():
         >>> HpMessage.create(data=b"SEAP", more=b"VT100").next().text
         'VT100'
 
-        # message with its continuation (we can send .next after receiving ACC)
+        # message with its continuation (we can send .next after receiving ACC) - see CMD_SEAP_PART2
         >>> HpMessage.create(data=b"SEAP", more=b"        VT100     ").next().packet().hex()
         '969696968112c0010000cbd2202020202020202056543130302020202020165c'
 
-        # create a 'ok, and tell me more...' message
+        # create a 'ok, and tell me more...' message (compare CMD_IDRE_PART2)
         >>> HpMessage.create().packet().hex()
         '9696969605014000000028550000'
+
+        # Create a message with a large random payload
+        >>> import secrets
+        >>> m = HpMessage.create(data=b'TEST', more=secrets.token_bytes(600))
+        >>> m.next().cont == HpMessage.CONT_PARTIAL_DATA
+        True
+        >>> m.next().next().cont == HpMessage.CONT_PARTIAL_DATA
+        True
+        >>> m.next().next().next().cont == HpMessage.CONT_FINAL_DATA
+        True
 
         """
         it = HpMessage()
         it.status = status
         it.seqno = seqno
+        if isinstance(data, str):
+            data = data.encode("ASCII")
+        if isinstance(more, str):
+            more = more.encode("ASCII")
         if data is None:
-            # we just want to send a "ok, and...?" message
-            it.cont = HpMessage.CONT_AND
+            if more is None:
+                # we just want to send a "ok, and...?" message
+                it.cont = HpMessage.CONT_AND
+            else:
+                # this is continuation data from something before
+                if len(more) <= 256:
+                    it.data = more
+                    it.rest = None
+                    it.cont = HpMessage.CONT_FINAL_DATA
+                else:
+                    it.data = more[:256]
+                    it.rest = more[256:]
+                    it.cont = HpMessage.CONT_PARTIAL_DATA
         else:
-            if isinstance(data, str):
-                data = data.encode("ASCII")
-            if isinstance(more, str):
-                more = more.encode("ASCII")
             if len(data) <= 256:
                 it.data = data
                 if more is None:
@@ -281,13 +329,13 @@ class HpMessage():
                 else:
                     # needs a continuation message
                     it.cont = HpMessage.CONT_AND
-                    it.rest = HpMessage.create(data=more, seqno=seqno+1).packet()
+                    it.rest = more
             else:
                 it.data = data[:256]
+                it.rest = data[256:]
+                it.cont = HpMessage.CONT_PARTIAL_DATA
                 if more is not None:
                     raise MessageFormatException("dunno, don't send MORE with long DATA")
-                it.cont = HpMessage.CONT_PARTIAL_DATA
-                it.rest = HpMessage.create(data=data[256:], seqno=seqno+1).packet()
 
         return it
 
@@ -338,11 +386,13 @@ class HpMessage():
         return it
 
     def _parse(self, data: bytes):
+        ok = 0
         for index in range(len(data)):
             if data[index] == 0x96:
+                ok = index
                 break
-        if data[index] != 0x96:
-            raise MessageFormatException(f"No preamble after {index} bytes")
+        if not ok:
+            raise MessageFormatException(f"No preamble after {len(data)} bytes")
 
         pre = data[index:index+4]
         if pre != self.PREAMBLE:
@@ -389,7 +439,10 @@ class HpMessage():
         Produce the next message
         """
         if self.rest:
-            return HpMessage.from_bytes(self.rest)
+            if len(self.rest) > 256 or self.cont == HpMessage.CONT_PARTIAL_DATA:
+                return HpMessage.create(more=self.rest, seqno=self.seqno+1)
+            else:
+                return HpMessage.create(data=self.rest, seqno=self.seqno+1)
         return None
 
 
@@ -430,7 +483,7 @@ def crc_16(in_data: bytes):
     xor_in = 0x0
     reflect_out = True
     xor_out = 0x0
-    check = 0xbb3d
+    #check = 0xbb3d
 
     msb_mask = 0x1 << (width - 1)
     mask = ((msb_mask - 1) << 1) | 1
@@ -466,29 +519,39 @@ def crc_16(in_data: bytes):
 
 
 
-
-HEADER = b'\x96\x96\x96\x96'
-CMD4 = b'\x81\x04\xc0\x00\x00\x00'
-
 @click.command()
 @click.argument("port")
 @click.argument("speed", default=9600)
 def main(port, speed):
 
-    # Ask the remote for its ID
-    command = HpMessage.create(data='IDRE')
+    # Read the app we want to send
 
-    with serial.Serial(port, speed, timeout=3) as ser:
+    start_offset = 0x120
+    app_path = os.path.join(os.path.dirname(__file__), "../disks/04952-16009_utility_051690/VT100.APP")
 
-        print(f"Sending '{command.text}'")
-        ser.write(command.packet())
+    #start_offset = 0x100
+    #app_path = '/home/hugh/hp4952/pc/VT100.APP'
 
+    with open(app_path, "rb") as appfile:
+        app = bytearray(appfile.read())
+
+    # skip first 0x100 of the app binary (TODO figure out how we know)
+    appdata = app[start_offset:]
+
+
+    def send_message(ser, msg):
+        print(f"Sending '{msg.text}'")
         # Wait for data within the timeout
         while 1:
+            print(f"Sending '{msg}'")
+            ser.write(msg.packet())
+
+            # TODO stream the data in and construct as it goes,
+            # TODO just waiting for a fixed chunk is pretty stupid
             data = ser.read(256)
-            # print(data)
             response = HpMessage.from_bytes(data)
 
+            # TODO (for getting long data from the analyzer):
             #if response.cont == HpMessage.CONT_PARTIAL_DATA:
             # keep going until we got the chain of data
             # (TODO: have the chain present as a single big buffer)
@@ -496,13 +559,59 @@ def main(port, speed):
             if response.data:
                 print(f"Received '{response.text}'")
 
+            if response.cont in (HpMessage.CONT_FIN, HpMessage.CONT_FINAL_DATA):
+                # this is the last message in sequence; we're done
+                # (unless we had more to send!)
+                if msg.rest:
+                    print("Uh oh, we didn't finish")
+                return False
+
             if response.cont == HpMessage.CONT_AND:
-                ser.write(HpMessage.create().packet())
+                if msg.next():
+                    msg = msg.next()
+                else:
+                    msg = HpMessage.create()
 
-            if response.cont == HpMessage.CONT_FIN:
-                # done
-                break
+            # TODO request re-send if we see a bad crc, etc
+        return True
 
+
+    with serial.Serial(port, speed, timeout=0.4) as ser:
+
+        # say hi
+        command = HpMessage.create(data='RSRE')
+        send_message(ser, command)
+        command = HpMessage.create(data='IDRE')
+        send_message(ser, command)
+
+        # OK, now try something more ambitious:
+        # install the VT100.app
+        cmd0 = HpMessage.create(data="DEAP")
+        send_message(ser, cmd0)
+        cmd0 = HpMessage.create(data="TRRS")
+        send_message(ser, cmd0)
+        cmd1 = HpMessage.create(data="RCAH", more=appdata[:0x80])
+        send_message(ser, cmd1)
+
+        # Send the app in blocks of 2kb
+        blocknum = 0
+        while appdata:
+            print(f"App Block {blocknum}")
+            blockdata = appdata[:2048]
+            appdata = appdata[2048:]
+            seblflag = 0 if blocknum==0 else 1 if appdata else 2
+            sebldata = bytes([0, blocknum, 8, 0, 0, seblflag])
+            cmd2 = HpMessage.create(data="SEBL", more=sebldata)
+            send_message(ser, cmd2)
+            cmd3 = HpMessage.create(data="RCAP", more=blockdata)
+            send_message(ser, cmd3)
+            blocknum = blocknum + 1
+
+#           cmd4 = HpMessage.create(data="SEAP", more=b'        VT100     ')
+        cmd4 = HpMessage.create(data="SEAP", more=b'                  ')
+        send_message(ser, cmd4)
+        cmd5 = HpMessage.create(data="EXAP")
+        send_message(ser, cmd5)
 
 
 if __name__ == "__main__":
