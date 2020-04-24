@@ -522,15 +522,20 @@ def crc_16(in_data: bytes):
 @click.command()
 @click.argument("port")
 @click.argument("speed", default=9600)
-def main(port, speed):
+@click.argument("filename", default='/home/hugh/hp4952/pc/VT100.APP')
+@click.argument("offset", default=0x100)
+def main(port, speed, filename, offset):
 
     # Read the app we want to send
 
-    start_offset = 0x120
-    app_path = os.path.join(os.path.dirname(__file__), "../disks/04952-16009_utility_051690/VT100.APP")
+    #start_offset = 0x120
+    #app_path = os.path.join(os.path.dirname(__file__), "../disks/04952-16009_utility_051690/VT100.APP")
 
     #start_offset = 0x100
     #app_path = '/home/hugh/hp4952/pc/VT100.APP'
+
+    start_offset = offset
+    app_path = filename
 
     with open(app_path, "rb") as appfile:
         app = bytearray(appfile.read())
