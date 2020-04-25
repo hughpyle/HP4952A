@@ -10,6 +10,9 @@ TERM         VT100 TERMINAL EMULATOR  A.00.00
 IPARS_MEC    IPARS/MOD. ERROR CHECK   A.00.00  
 ```
 
+This version of the VT100 emulator (TERM.APP) doesn't include a "local echo" control.
+
+
 [Source](http://www.hpmuseum.net/display_item.php?sw=588)
 
 (c) Copyright Hewlett-Packard Co 1986,89
