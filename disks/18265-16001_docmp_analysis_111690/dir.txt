@@ -1,3 +1,3 @@
-DDCMP4952    DDCMP DECODE/SIMULATE       2716
-DDCMP_DATA   DDCMP TRAINING MENUS AND DATA   
-TUTORIAL     To read: LOAD file
+4952 Protocol Analyzer   HP4952  DDCMP4952 4952  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer    EXAMINE DATA

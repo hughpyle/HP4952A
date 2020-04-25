@@ -1,7 +1,7 @@
-VT100        VT100 ASYNC TERMINAL EMULATOR   
-ASYNC_56K    56K bps ASYNCHRONOUS            
-ASYNC_64K    64K bps ASYNCHRONOUS            
-COPY_DISC    Copy disc & archive utility     
-DEMO_DATA    MENUS & DATA FOR GETTING STARTED
-IPARS_MEC    IPARS/MOD ERROR CHECK    A.00.01
-DCE_BERT     BERT - DCE EMULATION A.00.00    
+4952 Protocol Analyzer           TERMINAL  4952  
+4952 Protocol Analyzer           ASYNC_56K 4952  
+4952 Protocol Analyzer           ASYNC_64K 4952  
+4952 Protocol Analyzer    HP4952 Copy Disk 4952  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer           IPARS_MEC HP4952
+4952 Protocol Analyzer           DCE_BERT  4952  

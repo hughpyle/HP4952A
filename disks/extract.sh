@@ -10,7 +10,7 @@ echo "rm dir.txt" > /tmp/extract2.sh
 
 lifdir -c /tmp/tmpdisk.raw \
    | sed s/[\?\(\)]//g \
-   | awk -F, '{print "lifget -l /tmp/tmpdisk.raw " $1 " " $1 "." $2}' \
+   | awk -F, '{print "lifget -l -r /tmp/tmpdisk.raw " $1 " " $1 "." $2}' \
    | sed s/C403/APP/g \
    | sed s/C402/DAT/g \
    >> /tmp/extract2.sh

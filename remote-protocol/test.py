@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 from itertools import islice
 import logging
@@ -605,28 +606,50 @@ def crc_16(in_data: bytes):
 
 
 @click.command()
+@click.option("--reset", is_flag=True)
+@click.option("--ident", is_flag=True)
 @click.argument("port")
 @click.argument("speed", default=9600)
-@click.argument("filename", default='/home/hugh/hp4952/pc/VT100.APP')
+@click.argument("filename", default=os.path.join(os.path.dirname(__file__), "../disks/04952-16009_utility_051690/VT100.APP"))
 @click.argument("offset", default=0x100)
-def main(port, speed, filename, offset):
+def main(reset, ident, port, speed, filename, offset):
 
     # Read the app we want to send
 
-    #start_offset = 0x120
-    #app_path = os.path.join(os.path.dirname(__file__), "../disks/04952-16009_utility_051690/VT100.APP")
-
-    #start_offset = 0x100
-    #app_path = '/home/hugh/hp4952/pc/VT100.APP'
+    # App file header begins with:
+    # 00000000  34 39 35 32 20 50 72 6f  74 6f 63 6f 6c 20 41 6e  |4952 Protocol An|
+    # 00000010  61 6c 79 7a 65 72 c4 03  00 08 56 54 31 30 30 20  |alyzer....LONGER|
+    # 00000020  41 53 59 4e 43 20 54 45  52 4d 49 4e 41 4c 20 45  |APP DESCRIPTION |
+    # 00000030  4d 55 4c 41 20 4f 52 20  20 20 00 00 00 00 00 00  |GOES HERE ......|
+    # which is just a "local app name" and isn't sent across the wire.
+    #
+    # Then the actual app header begins at 0x100, e.g.
+    # 00000100  00 00 58 00 20 20 20 20  20 20 20 20 54 45 52 4d  |..X.        TERM|
+    # 00000110  49 4e 41 4c 20 20 34 39  35 32 20 20 00 08 00 01  |INAL  4952  ....|
+    # 00000120  41 73 79 6e 63 20 54 65  72 6d 69 6e 61 6c 20 45  |Async Terminal E|
+    # 00000130  6d 75 6c 61 74 6f 72 20  2d 20 44 55 4d 42 20 20  |mulator - DUMB  |
+    # From David Kuder's 4952oss, the third byte (0x58) is
+    # (the number of 256-byte blocks in the whole file) - 1, in this case
+    # file size between 22528 and 22784 bytes (vt100.app is 22784).
+    #
+    # But apps extracted with lifutils, *** without the "-r" option, ***
+    # include an extra 0x20 bytes (the directory entry) at their start, so you may need
+    # to specify offset 0x120 to download those to the analyzer.
 
     start_offset = offset
     app_path = filename
+    app = None
+    appdata = None
+    do_load = False
 
-    with open(app_path, "rb") as appfile:
-        app = bytearray(appfile.read())
+    if not (reset or ident):
+        do_load = True
 
-    # skip first 0x100 of the app binary (TODO figure out how we know)
-    appdata = app[start_offset:]
+        with open(app_path, "rb") as appfile:
+            app = bytearray(appfile.read())
+
+        # skip first 0x100 of the app binary
+        appdata = app[start_offset:]
 
 
     def send_message(ser, msg):
@@ -670,50 +693,53 @@ def main(port, speed, filename, offset):
 
     with serial.Serial(port, speed, timeout=5) as ser:
 
-        # say hi
-        cmd = HpMessage.create(data='RSRE')
-        rsp = send_message(ser, cmd)
-        if rsp.text != "ACC":
-            sys.exit("Failed!")
+        if reset:
+            # reset
+            cmd = HpMessage.create(data='RSRE')
+            rsp = send_message(ser, cmd)
+            if rsp.text != "ACC":
+                sys.exit("Failed!")
 
-        cmd = HpMessage.create(data='IDRE')
-        rsp = send_message(ser, cmd)
-        logger.info(rsp.text)
+        if ident or do_load:
+            cmd = HpMessage.create(data='IDRE')
+            rsp = send_message(ser, cmd)
+            logger.info(rsp.text)
 
-        # OK, now try something more ambitious:
-        # install the VT100.app
-        cmd = HpMessage.create(data="DEAP")
-        send_message(ser, cmd)
-        cmd = HpMessage.create(data="TRRS")
-        send_message(ser, cmd)
-        cmd = HpMessage.create(data="RCAH", more=appdata[:0x80])
-        rsp = send_message(ser, cmd)
-        if rsp.text != "ACC":
-            sys.exit("Failed!")
-
-        # Send the app in blocks of 2kb
-        blocknum = 0
-        while appdata:
-            logger.info(f"App Block {blocknum}")
-            blockdata = appdata[:2048]
-            appdata = appdata[2048:]
-            seblflag = 0 if blocknum == 0 else 1 if appdata else 2
-            sebldata = bytes([0, blocknum, 8, 0, 0, seblflag])
-            cmd = HpMessage.create(data="SEBL", more=sebldata)
+        if do_load:
+            # OK, now try something more ambitious:
+            # install the app
+            cmd = HpMessage.create(data="DEAP")
             send_message(ser, cmd)
-            cmd = HpMessage.create(data="RCAP", more=blockdata)
+            cmd = HpMessage.create(data="TRRS")
             send_message(ser, cmd)
-            blocknum = blocknum + 1
+            cmd = HpMessage.create(data="RCAH", more=appdata[:0x80])
+            rsp = send_message(ser, cmd)
+            if rsp.text != "ACC":
+                sys.exit("Failed!")
 
-        # App name is not important for 4592a
-#       cmd4 = HpMessage.create(data="SEAP", more=b'        VT100     ')
-        cmd = HpMessage.create(data="SEAP", more=b'                  ')
-        send_message(ser, cmd)
+            # Send the app in blocks of 2kb
+            blocknum = 0
+            while appdata:
+                logger.info(f"App Block {blocknum}")
+                blockdata = appdata[:2048]
+                appdata = appdata[2048:]
+                seblflag = 0 if blocknum == 0 else 1 if appdata else 2
+                sebldata = bytes([0, blocknum, 8, 0, 0, seblflag])
+                cmd = HpMessage.create(data="SEBL", more=sebldata)
+                send_message(ser, cmd)
+                cmd = HpMessage.create(data="RCAP", more=blockdata)
+                send_message(ser, cmd)
+                blocknum = blocknum + 1
 
-        # Execute!
-        cmd = HpMessage.create(data="EXAP")
-        rsp = send_message(ser, cmd)
-        logger.info(rsp.text)
+            # App name is not important for 4592a
+    #       cmd4 = HpMessage.create(data="SEAP", more=b'        VT100     ')
+            cmd = HpMessage.create(data="SEAP", more=b'                  ')
+            send_message(ser, cmd)
+
+            # Execute!
+            cmd = HpMessage.create(data="EXAP")
+            rsp = send_message(ser, cmd)
+            logger.info(rsp.text)
 
 
 if __name__ == "__main__":

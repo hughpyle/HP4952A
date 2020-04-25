@@ -1,5 +1,5 @@
-EXTD_ASYNC   ASYNC 14.4K & 38.4k      A.00.00
-COPY_DISC    Copy disc & archive utility     
-DEMO_DATA    MENUS & DATA FOR GETTING STARTED
-TERM         VT100 TERMINAL EMULATOR  A.00.00
-IPARS_MEC    IPARS/MOD. ERROR CHECK   A.00.00
+4952 Protocol Analyzer   HP4952  X25_DECODEHP4952
+4952 Protocol Analyzer    HP4952 Copy Disk 4952  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer           TERMINAL  4952  
+4952 Protocol Analyzer           IPARS_MEC HP4952

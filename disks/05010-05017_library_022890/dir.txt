@@ -1,58 +1,58 @@
-A_COUNTCHR   'COUNT DCE/DTE CHARS FOR 60 SEC  
-A_COUNTPAR   'COUNT DCE/DTE PARITY ERRORS     
-B_ASC7EVER   7ASCII7 EVEN PARITY WITH ERRORS  
-B_ASC7ODER   7ASCII7 ODD PARITY WITH ERRORS   
-B_AUTOBAUD   'FIND THE PRINTER/TERM BAUD RATE 
-B_BRBRPOLE   781 CHAR BARBERPOLE XONOFF
-B_BRBRPOLS   781 CHAR BARBERPOLE XONOFF
-B_FOXFLOW    7QBFOX WITH XONXOFF AND DTR FLOW 
-C_ALGNMNT    7SQUARE PATTERN-TERMINAL ALIGNMNT
-C_RESPTIME   'MEASURE AVG/INST RESPONSE TIME  
-D_BUFFER     'CHARACTERIZE PRINTER BUFFER     
-D_DTR        7EXERCISE PRINTER DTR FLOW CTRL  
-D_XONXOFF    7EXERCISE PRINTER XON/XOFF CTRL  
-E_DTRFLOW    'EXERCISE HOST DTR FLOW CTRL     
-E_XONXOFF    'EXERCISE HOST XON/OFF FLOW CTRL 
-F_BRBRPOLS   '81 CHAR BARBERPOLE XONOFF
-F_BUFFER     'CHARACTERIZE PRINTER BUFFER     
-I_AVRTSCTS   AVERAGE RTS TO CTS DELAY TIME   
-I_AVTURND    AVERAGE MODEM TURNAROUND TIME   
-I_CDOFF      CD OFF WHILE RECEIVING DATA     
-I_CD_TO_RD   TIME FROM CD TO RECEIVED DATA   
-I_CD_TO_TD   TIME-- CD OFF TO TRANSMIT DATA  
-I_CTSTD      TIME FROM CTS TO TRANSMIT DATA  
-I_CTS_ERR    BEEP AND HILIGHT CTS BEFORE RTS 
-I_DSR_DTR    LOOKS FOR DSR OR DTR TRANSITIONS
-I_LCLTURND   LOCAL TURNAROUND TIME CD TO RTS 
-I_RMT_TRND   REMOTE TURNAROUND TIME RTS TO CD
-I_RTS_CTS    MEASURES RTS TO CTS DELAY TIME  
-I_RTS_ERR    RTS OFF WHILE TRANSMITTING DATA 
-I_RTS_TD     TIME FROM RTS TO TRANSMIT DATA  
-S_CNTERRS    COUNT DCE/DTE ABORTS&FCS ERRORS 
-S_CNTIVALL   COUNT DTE / DCE I VS ALL FRAMES 
-S_CTSTPRDC   COUNT DCE XID
-S_CTSTPRDT   COUNT DTE XID
-S_HILITFLG   HILIGHT FLAGS                   
-S_SNRM       SEND SNRM BEEP ON ERROR         
-S_UTIL       FRAME TIME VS TOTAL DTE-2 DCE-3 
-U_BURS_SPS   SETUP FOR BURROUGHS SY POLL/SEL 
-U_BUR_A_PS   SETUP BURROUGHS ASYNC POLL/SELEC
-U_IPARS      COMMON IPARS CONFIGURATION      
-U_SYALL7     SYNC    CAPTURE ALL BITS-7 BIT  
-U_SYALL8     SYNC   CAPTURE ALL BITS-8 BIT   
-U_UNISCOPE   SETUP FOR UNISCOPE FOR SYNC LINC
-X_CALLTRYS   COUNT DCE/DTE CALL TRIES & ERRS 
-X_CNTALLFR   COUNT ALL SABM
-X_CNTCALLS   COUNT DCE/DTE CALLS AND CALL ACC
-X_CNTCONCT   COUNT DCE/DTE SABM & UA         
-X_CNTDCEFR   COUNT DCE SABM
-X_CNTDCFRT   COUNT DCE SABM
-X_CNTDTEFR   COUNT DTE SABM
-X_CNTDTFRT   COUNT DTE SABM
-X_CNTERRS    COUNT DCE/DTE ABORTS&FCS ERRORS 
-X_CNTIVALL   COUNT DTE / DCE I VS ALL FRAMES 
-X_DCEUTIL    DCE FRAME AND TOTAL TIME - 10MIN
-X_DTEUTIL    DTE FRAME AND TOTAL TIME - 10MIN
-X_HILITFLG   HILIGHT FLAGS                   
-X_LINKUPDN   BRING HDLC LINK UP AND DOWN-DTE 
-X_LVL1       TEST FOR X.25 LEVEL 1 AND FLAGS 
+4954 Protocol Analyzer   	User def  
+4954 Protocol Analyzer   	User def  
+4954 Protocol Analyzer   	User def 
+4954 Protocol Analyzer   	User def 
+4954 Protocol Analyzer   	User def  
+4954 Protocol Analyzer   DTR   
+4954 Protocol Analyzer   DTR 4P
+4954 Protocol Analyzer   	User def 
+4954 Protocol Analyzer   	User def 
+4954 Protocol Analyzer   	User def  
+4954 Protocol Analyzer   	User def  
+4954 Protocol Analyzer   	User def 
+4954 Protocol Analyzer   	User def 
+4954 Protocol Analyzer   	User def  
+4954 Protocol Analyzer   	User def  
+4954 Protocol Analyzer   CTS 4P
+4954 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   SNRM / DTE ID
+4952 Protocol Analyzer   SNRM / DCE ID
+4952 Protocol Analyzer   	User def 
+4952 Protocol Analyzer   	User def 
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def 
+4952 Protocol Analyzer   	User def 
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   UA
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   UA
+4952 Protocol Analyzer   UA
+4952 Protocol Analyzer   UA
+4952 Protocol Analyzer   UA
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def 
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def  
+4952 Protocol Analyzer   	User def 
+4952 Protocol Analyzer   	User def 
+4952 Protocol Analyzer   	User def  

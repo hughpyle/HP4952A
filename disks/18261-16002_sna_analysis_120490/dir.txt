@@ -1,2 +1,2 @@
-SNA_DECODE   4952 Protocol Analyzer
-SNA_DATA     4952 Protocol Analyzer
+4952 Protocol Analyzer           SNA_DECODE4952  
+4952 Protocol Analyzer   	User def  
