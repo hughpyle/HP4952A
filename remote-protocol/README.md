@@ -86,5 +86,15 @@ Observing the log data and using `strings` on 5XREMOTE shows these commands belo
 
 ## Try it!
 
-This [small python application](test.py) downloads a copy of the [VT100 app](../disks/04952-16009_utility_051690/VT100.APP) to the analyzer and runs it!
+This [small python application](test.py) an send applications to the analyzer.
+
+Try it:
+```
+$ python test.py /dev/ttyUSB0 9600 --ident
+HP4952
+
+$ python test.py /dev/ttyUSB0 9600 --reset
+
+$ python test.py /dev/ttyUSB0 9600 ~/data/term.app
+```
 
