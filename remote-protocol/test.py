@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-import os
 import sys
+from itertools import islice
+import logging
 import serial
 import click
+
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
+
 
 # --- Captured message samples ---
 
@@ -178,9 +184,9 @@ CMD_TRAL_PART2 = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55\x00\x00'
 CMD_TRAL_RESP2 = b'\x96\x96\x96\x96\x81\x00\x41\x01\x00\x00\x5b\xed\x00\x07\x00\x02\x00\x04\x00\x01\x00\x01\x00\x02\x00\x01\x00\x01\x00\x01\x00\x01\x00\x02\x00\x03\x00\xc0\x00\x03\x00\x03\x00\x00\x00\x10\x00\x00\x00\x01\x00\x00\x00\x02\x00\x00\x00\x26\x00\x00\x00\x03\x00\x32\x00\x32\x00\x2d\x00\x2d\x00\x37\x00\x3d\x00\x70\x00\x7f\x00\xff\x00\x0a\x00\x08\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x01\x00\x09\x55\x73\x65\x72\x20\x64\x65\x66\x20\x20\x00\x80\x00\x80\x00\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xfe\xe0'
 CMD_TRAL_PART3 = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55\x00\x00'
 CMD_TRAL_RESP3 = b'\x96\x96\x96\x96\x81\x00\x41\x02\x00\x00\xab\xed\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\x00\x00\x00\x00\x00\x00\x00\x02\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02\x00\x05\x00\x00\x00\x17\x00\x00\x00\x1f\xde\x45\xde\x4c\x00\x00\x00\x00\xde\x68\xd3\xc4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x00\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x49\x2a'
-CMD_TRAL_PART4 = b'\x96\x96\x96\x96\x05\x02\x40\x00\x00\x00\x6c\x55\x00\x00'
+CMD_TRAL_PART4 = b'\x96\x96\x96\x96\x05\x02\x40\x00\x00\x00\x6c\x55\x00\x00'  # \x05\x02 = nope
 CMD_TRAL_RESP4 = b'\x96\x96\x96\x96\x81\x00\x41\x02\x00\x00\xab\xed\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\x00\x00\x00\x00\x00\x00\x00\x02\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02\x00\x05\x00\x00\x00\x17\x00\x00\x00\x1f\xde\x45\xde\x4c\x00\x00\x00\x00\xde\x68\xd3\xc4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x00\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x49\x2a'
-CMD_TRAL_PART5 = b'\x96\x96\x96\x96\x05\x02\x40\x00\x00\x00\x6c\x55\x00\x00'
+CMD_TRAL_PART5 = b'\x96\x96\x96\x96\x05\x02\x40\x00\x00\x00\x6c\x55\x00\x00'  # \x05\x02 = nope
 CMD_TRAL_RESP5 = b'\x96\x96\x96\x96\x81\x00\x41\x02\x00\x00\xab\xed\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\x00\x00\x00\x00\x00\x00\x00\x02\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02\x00\x05\x00\x00\x00\x17\x00\x00\x00\x1f\xde\x45\xde\x4c\x00\x00\x00\x00\xde\x68\xd3\xc4\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x03\x00\x00\xff\xff\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x49\x2a'
 CMD_TRAL_PART6 = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55\x00\x00'
 CMD_TRAL_RESP6 = b'\x96\x96\x96\x96\x81\x00\x41\x03\x00\x00\xfa\x2d\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -192,6 +198,85 @@ CMD_TRAL_PART9 = b'\x96\x96\x96\x96\x05\x01\x40\x00\x00\x00\x28\x55\x00\x00'
 CMD_TRAL_RESP9 = b'\x96\x96\x96\x96\x81\x00\x41\x06\x00\x00\xea\x2c\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 # this continues... next part starts at line 6610
 # all finally ends at 15332
+
+
+# --- sources ---
+
+class BytesIter:
+    """
+    iterator for bytes
+    >>> list(BytesIter(b'def'))
+    [100, 101, 102]
+    >>> bytes([b for b in BytesIter(b'abc')])
+    b'abc'
+    """
+    def __init__(self, data: bytes):
+        # serial should be open already, this won't open or close it
+        self.data = data
+        self.i = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            b = self.data[self.i]
+            self.i = self.i + 1
+        except IndexError:
+            raise StopIteration
+        return b
+
+
+class SerialIter:
+    """
+    iterator for serial
+    """
+    def __init__(self, ser: serial):
+        # serial should be open already, this won't open or close it
+        self.ser = ser
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        b = self.ser.read(1)
+        if b == b'':
+            raise StopIteration
+        return ord(b)
+
+
+def _read(itr, count: int):
+    """
+    get (up to) count bytes from the source
+
+    >>> _read(BytesIter(b'abcdefghijklmn'), 5)
+    b'abcde'
+    """
+    buff = bytes(islice(itr, count))
+    logger.debug(buff)
+    if len(buff) < count:
+        raise MessageFormatException("Missing data: expected {0} bytes, got {1}".format(
+            count, len(buff)))
+    return buff
+
+
+def _read_from(itr, value: int, count: int):
+    """
+    starting when we see 'value', read 'count' bytes
+
+    >>> _read_from(BytesIter(b'abcdefghijklmn'), ord('d'), 5)
+    b'defgh'
+    """
+    skip = 0
+    while 1:
+        b = list(islice(itr, 1))
+        logger.debug(bytes(b))
+        if b == []:
+            raise MessageFormatException(f"No x{value:02x} after {skip} bytes")
+        if b[0] == value:
+            break
+        skip = skip + 1
+    return bytes(b) + _read(itr, count-1)
 
 
 # --- Message class, to parse and create messages ---
@@ -216,14 +301,14 @@ class HpMessage():
         self.cont: int = self.CONT_FIN
         self.seqno: int = 0
         self.data: bytes = None
-        self.rest: bytes = None
+        self.rest = None
 
     def __str__(self):
         if self.data is None:
             d = "no"
         else:
             d = len(self.data)
-        return "data={0} bytes, {1} {2}, cont={3}, seq={4}".format(
+        return "{0} bytes, {1:02x} {2:02x}, cont={3:02x}, seq={4:02x}".format(
             d,
             self._intro1(),
             self._intro2(),
@@ -243,6 +328,7 @@ class HpMessage():
             pack = self.PREAMBLE + intro + crc_16(intro) + b'\x00\x00'
         else:
             pack = self.PREAMBLE + intro + crc_16(intro) + self.data + crc_16(self.data)
+        logger.debug(pack)
         return pack
 
     def _intro1(self):
@@ -281,7 +367,8 @@ class HpMessage():
         'VT100'
 
         # message with its continuation (we can send .next after receiving ACC) - see CMD_SEAP_PART2
-        >>> HpMessage.create(data=b"SEAP", more=b"        VT100     ").next().packet().hex()
+        >>> m = HpMessage.create(data=b"SEAP", more=b"        VT100     ")
+        >>> m.next().packet().hex()
         '969696968112c0010000cbd2202020202020202056543130302020202020165c'
 
         # create a 'ok, and tell me more...' message (compare CMD_IDRE_PART2)
@@ -291,11 +378,14 @@ class HpMessage():
         # Create a message with a large random payload
         >>> import secrets
         >>> m = HpMessage.create(data=b'TEST', more=secrets.token_bytes(600))
-        >>> m.next().cont == HpMessage.CONT_PARTIAL_DATA
+        >>> m = m.next()
+        >>> m.cont == HpMessage.CONT_PARTIAL_DATA
         True
-        >>> m.next().next().cont == HpMessage.CONT_PARTIAL_DATA
+        >>> m = m.next()
+        >>> m.cont == HpMessage.CONT_PARTIAL_DATA
         True
-        >>> m.next().next().next().cont == HpMessage.CONT_FINAL_DATA
+        >>> m = m.next()
+        >>> m.cont == HpMessage.CONT_FINAL_DATA
         True
 
         """
@@ -318,7 +408,7 @@ class HpMessage():
                     it.cont = HpMessage.CONT_FINAL_DATA
                 else:
                     it.data = more[:256]
-                    it.rest = more[256:]
+                    it.rest = BytesIter(more[256:])
                     it.cont = HpMessage.CONT_PARTIAL_DATA
         else:
             if len(data) <= 256:
@@ -329,10 +419,10 @@ class HpMessage():
                 else:
                     # needs a continuation message
                     it.cont = HpMessage.CONT_AND
-                    it.rest = more
+                    it.rest = BytesIter(more)
             else:
                 it.data = data[:256]
-                it.rest = data[256:]
+                it.rest = BytesIter(data[256:])
                 it.cont = HpMessage.CONT_PARTIAL_DATA
                 if more is not None:
                     raise MessageFormatException("dunno, don't send MORE with long DATA")
@@ -360,7 +450,7 @@ class HpMessage():
         >>> HpMessage.from_bytes(RSP_REJ0).status
         False
 
-        >>> HpMessage.from_bytes(b'\x00\xff\x00' + RSP_MSGF + b'\xff\x01\x02').rest
+        >>> bytes(list(HpMessage.from_bytes(b'\x00\xff\x00' + RSP_MSGF + b'\xff\x01\x02').rest))
         b'\xff\x01\x02'
 
         # Just check we can parse these...
@@ -381,30 +471,24 @@ class HpMessage():
         256
 
         """
+        return HpMessage.from_iterator(BytesIter(data))
+
+    @staticmethod
+    def from_iterator(data):
         it = HpMessage()
-        it._parse(data)
+        it._parse_iter(data)
         return it
 
-    def _parse(self, data: bytes):
-        ok = 0
-        for index in range(len(data)):
-            if data[index] == 0x96:
-                ok = index
-                break
-        if not ok:
-            raise MessageFormatException(f"No preamble after {len(data)} bytes")
-
-        pre = data[index:index+4]
+    def _parse_iter(self, itr):
+        pre = _read_from(itr, 0x96, 4)
         if pre != self.PREAMBLE:
             raise MessageFormatException("Bad preamble: 'x{0}'".format(bytes(pre).hex()))
-        index = index + 4
 
-        intro = data[index:index+6]
-        introcrc = data[index+6:index+8]
+        intro = _read(itr, 6)
+        introcrc = _read(itr, 2)
         if crc_16(intro) != introcrc:
             raise MessageFormatException("Bad intro CRC: '{0}', expected '{1}'".format(
                 bytes(introcrc).hex(), crc_16(intro).hex()))
-        index = index + 8
 
         datacode = intro[0]         # 0x81 or 0x05
         datalen = intro[1]          # length for 0x81, or status for 0x05
@@ -421,28 +505,30 @@ class HpMessage():
             if datalen == 0:
                 # Zero means 256 bytes of data
                 datalen = 256
-            databuff = data[index:index+datalen]
+            databuff = _read(itr, datalen)
             if len(databuff) < datalen:
                 raise MessageFormatException("Missing data: expected {0} bytes, got {1}".format(
                     datalen, len(databuff)))
-            datacrc = data[index+datalen:index+datalen+2]
+            datacrc = _read(itr, 2)
             if crc_16(databuff) != datacrc:
                 raise MessageFormatException("Bad text CRC of {0} data bytes: '{1}', expected '{2}'".format(
                     datalen, bytes(datacrc).hex(), crc_16(databuff).hex()))
 
         self.data = databuff
-        # Keep the rest, it might contain more messages!
-        self.rest = data[index+datalen+2:]
+        self.rest = itr
 
     def next(self):
         """
         Produce the next message
         """
         if self.rest:
-            if len(self.rest) > 256 or self.cont == HpMessage.CONT_PARTIAL_DATA:
-                return HpMessage.create(more=self.rest, seqno=self.seqno+1)
+            rest = bytes(list(self.rest))
+            if self.cont == HpMessage.CONT_PARTIAL_DATA:
+                return HpMessage.create(more=rest, seqno=self.seqno+1)
+            if len(rest) > 256:
+                return HpMessage.create(more=rest, seqno=self.seqno+1)
             else:
-                return HpMessage.create(data=self.rest, seqno=self.seqno+1)
+                return HpMessage.create(data=rest, seqno=self.seqno+1)
         return None
 
 
@@ -518,7 +604,6 @@ def crc_16(in_data: bytes):
     return int(crc).to_bytes(2, byteorder='little')
 
 
-
 @click.command()
 @click.argument("port")
 @click.argument("speed", default=9600)
@@ -545,78 +630,90 @@ def main(port, speed, filename, offset):
 
 
     def send_message(ser, msg):
-        print(f"Sending '{msg.text}'")
-        # Wait for data within the timeout
+        """
+        Send a message and read the response
+        """
+        logger.debug(f"Sending '{msg.text}'")
+        response = None
         while 1:
-            print(f"Sending '{msg}'")
+            logger.debug(f"Sending '{msg}'")
             ser.write(msg.packet())
+            ser.write(0xff)
 
-            # TODO stream the data in and construct as it goes,
-            # TODO just waiting for a fixed chunk is pretty stupid
-            data = ser.read(256)
-            response = HpMessage.from_bytes(data)
+            # Read the response
+            response = HpMessage.from_iterator(SerialIter(ser))
 
             # TODO (for getting long data from the analyzer):
             #if response.cont == HpMessage.CONT_PARTIAL_DATA:
             # keep going until we got the chain of data
             # (TODO: have the chain present as a single big buffer)
 
+            # TODO request re-send if we see a bad crc, etc
+
             if response.data:
-                print(f"Received '{response.text}'")
+                logger.debug(f"Received '{response.text}'")
 
             if response.cont in (HpMessage.CONT_FIN, HpMessage.CONT_FINAL_DATA):
                 # this is the last message in sequence; we're done
                 # (unless we had more to send!)
                 if msg.rest:
-                    print("Uh oh, we didn't finish")
-                return False
+                    logger.debug("Uh oh, we didn't finish")
+                return response
 
             if response.cont == HpMessage.CONT_AND:
-                if msg.next():
-                    msg = msg.next()
-                else:
+                msg = msg.next()
+                if msg is None:
                     msg = HpMessage.create()
 
-            # TODO request re-send if we see a bad crc, etc
-        return True
+        return response
 
 
-    with serial.Serial(port, speed, timeout=0.4) as ser:
+    with serial.Serial(port, speed, timeout=5) as ser:
 
         # say hi
-        command = HpMessage.create(data='RSRE')
-        send_message(ser, command)
-        command = HpMessage.create(data='IDRE')
-        send_message(ser, command)
+        cmd = HpMessage.create(data='RSRE')
+        rsp = send_message(ser, cmd)
+        if rsp.text != "ACC":
+            sys.exit("Failed!")
+
+        cmd = HpMessage.create(data='IDRE')
+        rsp = send_message(ser, cmd)
+        logger.info(rsp.text)
 
         # OK, now try something more ambitious:
         # install the VT100.app
-        cmd0 = HpMessage.create(data="DEAP")
-        send_message(ser, cmd0)
-        cmd0 = HpMessage.create(data="TRRS")
-        send_message(ser, cmd0)
-        cmd1 = HpMessage.create(data="RCAH", more=appdata[:0x80])
-        send_message(ser, cmd1)
+        cmd = HpMessage.create(data="DEAP")
+        send_message(ser, cmd)
+        cmd = HpMessage.create(data="TRRS")
+        send_message(ser, cmd)
+        cmd = HpMessage.create(data="RCAH", more=appdata[:0x80])
+        rsp = send_message(ser, cmd)
+        if rsp.text != "ACC":
+            sys.exit("Failed!")
 
         # Send the app in blocks of 2kb
         blocknum = 0
         while appdata:
-            print(f"App Block {blocknum}")
+            logger.info(f"App Block {blocknum}")
             blockdata = appdata[:2048]
             appdata = appdata[2048:]
-            seblflag = 0 if blocknum==0 else 1 if appdata else 2
+            seblflag = 0 if blocknum == 0 else 1 if appdata else 2
             sebldata = bytes([0, blocknum, 8, 0, 0, seblflag])
-            cmd2 = HpMessage.create(data="SEBL", more=sebldata)
-            send_message(ser, cmd2)
-            cmd3 = HpMessage.create(data="RCAP", more=blockdata)
-            send_message(ser, cmd3)
+            cmd = HpMessage.create(data="SEBL", more=sebldata)
+            send_message(ser, cmd)
+            cmd = HpMessage.create(data="RCAP", more=blockdata)
+            send_message(ser, cmd)
             blocknum = blocknum + 1
 
-#           cmd4 = HpMessage.create(data="SEAP", more=b'        VT100     ')
-        cmd4 = HpMessage.create(data="SEAP", more=b'                  ')
-        send_message(ser, cmd4)
-        cmd5 = HpMessage.create(data="EXAP")
-        send_message(ser, cmd5)
+        # App name is not important for 4592a
+#       cmd4 = HpMessage.create(data="SEAP", more=b'        VT100     ')
+        cmd = HpMessage.create(data="SEAP", more=b'                  ')
+        send_message(ser, cmd)
+
+        # Execute!
+        cmd = HpMessage.create(data="EXAP")
+        rsp = send_message(ser, cmd)
+        logger.info(rsp.text)
 
 
 if __name__ == "__main__":
