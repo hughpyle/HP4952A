@@ -38,6 +38,8 @@ All at the HP Computer Museum:
 * Operating Manual at [Bitsavers](http://www.bitsavers.org/test_equipment/hp/4952/)
 * Operating Manual and other docs at [emeriaud.fr](https://emeriaud.fr/HP4952A/manuals/)
 * Test Library pdf at [classiccmp.org](http://www.classiccmp.org/cini/systems.htm#HP)
+* HP4951C [service manual](http://www.hpmuseum.net/document.php?hwfile=6179)
+* KO4BB has [EPROM dumps](http://ftb.ko4bb.com/getsimple/index.php?id=manuals&dir=HP_Agilent) from 4951C and 4957.
 
 
 ## Useful Links
