@@ -2,6 +2,9 @@
 
 This is a version of the classic "snake" game, for the HP4952A protocol analyzer.
 
+There's a short [video on YouTube](https://www.youtube.com/watch?v=JG0uQsgZgHg).
+
+
 ![snek1_small](snek1_small.jpg)
 
 
