@@ -8,6 +8,8 @@ The [PC Utilities Disk 1](http://www.hpmuseum.net/display_item.php?sw=597) inclu
 
 [Here](https://hackaday.io/project/163027-hp-4952a-turned-general-purpose-cpm-machine/log/158754-getting-programs-to-your-4952) is a short writeup of how to do that.
 
+As an alternative to 5XREMOTE, you can use the [comms script](comms) - see [the end of this page](#try-it).
+
 ![5XREMOTE-1](5xremote-screen1.png)
 
 Remote functions include:
@@ -19,8 +21,6 @@ Remote functions include:
 * Display timers and counters.
 * Upload and download captured data.
 * Run applications on the analyzer.
-
-(My goal is to automatically bootstrap into the VT100 terminal emulator.  For that, I need to download the application to the analyzer, then tell it to run.  All this can be done over the remote link.  Once the terminal emulator app is running, it will communicate via the interface pod).
 
 ![5XREMOTE-1](5xremote-screen2.png)
 
