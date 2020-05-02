@@ -3,7 +3,7 @@
 ; copyright (c) 2020 by Hugh Pyle
 ; this file released under MIT license
 
-; library files are (c) by David Kuder and contributors
+; All the library files are (c) by David Kuder and contributors
 ; licensed separately https://github.com/dkgrizzly/4952oss
 ; this project wouldn't exist without his work
 include "lib/header.asm"
@@ -94,7 +94,8 @@ _splash_end:
 ; consts
 _food_char: equ 07fh
 _space_char: equ 020h
-
+_quad_fill_char: equ 0bfh
+_special_fill_char: equ 0e4h
 _scrattr_food: equ 083h			; normal
 
 ;; Main Application
@@ -310,6 +311,8 @@ _move_done:
 	jr z, _die
 	cp 09ch 	; border
 	jr z, _die
+	cp _special_fill_char
+	jr z, _die
 	jr _update_char_at
 
 
@@ -325,7 +328,7 @@ _update_char_at:
 	ld c, a
 
 	; it's 0x20 or (0xb0 plus pixels)
-	; after this it'll be (0xb0 plus pixels)
+	; after this it'll be (0xb0 plus pixels) or maybe _special_fill_char
 	or 0b0h
 	ld b, a
 
@@ -374,11 +377,11 @@ _add_the_pixel:
 
 	; special test for "all quadrants set" because the character doesn't fill (!),
 	; so instead use 0E4h (space) with "invert" attr 8b
-	cp 0bfh
+	cp _quad_fill_char
 	jr nz, _not_all_filled
 	ld a, _scrattr_ascii_i
 	ld (_text_attr), a
-	ld a, 0e4h
+	ld a, _special_fill_char
 
 _not_all_filled:
 	; save for display
@@ -406,6 +409,8 @@ _eat:
 	; go faster
 	call _go_faster
 	; TODO extend the tail etc
+	; animate
+	call _swallow
 	; clear the space where food was
 	ld a, _scrattr_ascii_n
 	ld (_text_attr), a
@@ -419,7 +424,7 @@ _eat:
 
 _initialize_data:
 	; things that we reset after game-over
-	ld a, 080h
+	ld a, 070h
 	ld (_delay_ticks), a
 	ld a, 0
 	ld (_have_food), a
@@ -616,14 +621,25 @@ _splode2:
 	ret
 
 
+; splode in reverse when we eat
+_swallow:
+	ld a, _scrattr_ascii_n
+	ld (_text_attr), a
+	ld a, 0a9h
+_swallow2:
+	push af
+	call _put_char_on_board
+	ld bc, 02000h
+	call _delay
+	pop af
+	dec a
+	cp 0a1h
+	jr nz, _swallow2
+	ret
+
 ; ======================== ------ data area ------ =========================
 
 ;; todo store tail positions and trim the tail as we go
-
-
-;; todo splode anim
-;; with characters from A2 thru A9
-
 
 ;; todo animated bit signal
 ;;  8C - high
@@ -680,7 +696,7 @@ _tail_position:
 
 _delay_ticks:
 	; decrement this until morale improves
-	defb 080h
+	defb 070h
 
 _food_x:
 	defb 0

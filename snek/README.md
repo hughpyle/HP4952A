@@ -37,8 +37,6 @@ I think the game is playable.  Let me know any bugs you find, and any features y
 
 ### TODO
 
-- animation when eat
-- some hit-testing bugs? repro
 - shorten the tail as we go (work!!)
-- start a bit faster? (seems too easy)
 - better exit info screen including score
+- better random seed
