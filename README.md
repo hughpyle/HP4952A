@@ -12,8 +12,9 @@ My goal is to use this cute portable machine as a small RS-232 terminal for a Ra
 
 This repo includes:
 
-* [Disk images](disks) and copies of applications and menus extracted from them
-* Some documentation of the ["remote control" protocol](remote-protocol), and some Python code that can send commands and upload and download applications and data.
+* [Disk images](disks) and copies of applications and menus extracted from them,
+* Some documentation of the ["remote control" protocol](remote-protocol), and some Python code that can send commands and upload and download applications and data,
+* A new game, "[snek](snek)"
 
 Other things found elsewhere:
 
