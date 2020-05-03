@@ -41,4 +41,3 @@ I think the game is playable.  Let me know any bugs you find, and any features y
 
 - shorten the tail as we go (work!!)
 - better exit info screen including score
-- better random seed

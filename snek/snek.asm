@@ -103,6 +103,7 @@ _scrattr_food: equ 083h			; normal
 	seek 0a00h
 _code_start:
 _app_main:
+	call _start_prompt
 	call _initialize_data
 	call _clear_screen
 	call _draw_borders
@@ -446,6 +447,29 @@ _getkey_until2:
 	jr nz, _getkey_until2
 	ret
 
+_getkey_pretendtropy:
+	; test the keyboard until anything happens
+	; (except F5 because that just started the app),
+	; return a fairly-random thing in HL
+	ld bc, 0ffffh ; counter
+_getkey_pretendtropy2:
+	dec bc
+	call _keyscan
+	call _getkey_nowait
+	cp _key_f5
+	jr z, _getkey_pretendtropy2
+	cp _key_none
+	jr z, _getkey_pretendtropy2
+	push bc
+	ld hl, 0000h
+	ld bc, 0000h
+	cpdr
+	xor h
+	pop bc
+	xor b
+	xor c
+	ld h, a
+	ret
 
 ;; When the snake goes off the board, game over.
 ;; So it's good to draw a border around the board.
@@ -566,6 +590,24 @@ _xrnd:
 	ret
 
 
+_start_prompt:
+	call _clear_screen
+
+	ld a, _scrattr_ascii_n			; Normal Text
+	ld (_text_attr), a
+	ld a, 008h						; Line 1 (Top)
+	ld (_cur_y), a
+	ld a, 006h						; Column 1 (Left)
+	ld (_cur_x), a
+
+	ld hl, _str_start
+	call _writestring
+	call _getkey_pretendtropy
+	ld (_xrnd+1),hl
+	call _clear_screen
+	ret
+
+
 ;; get the char on the board at (_cur_x, _cur_y), return a.
 _get_char_on_board:
 	call _locxy     ; sets hl to (_cur_x, _cur_y) in the screen-buffer
@@ -654,6 +696,9 @@ _str_exit:
 
 _str_over:
 	defb "Game over!  Do you want to exit?", 000h
+
+_str_start:
+	defb "Press any key to start", 000h
 
 _str_hex:
 	defb "%x", 000h
