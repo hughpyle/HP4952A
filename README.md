@@ -8,7 +8,7 @@
 
 > _(from the [datasheet](https://emeriaud.fr/HP4952A/manuals/HP-4951C-4952A-Datasheet.pdf))_
 
-My goal is to use this cute portable machine as a small RS-232 terminal for a Raspberry Pi, and for a SWTPC 6800 microcomputer.  Along the way, I've started to get interested in writing Z80 applications to run on the analyzer too.
+My goal is to use this cute portable machine as a small RS-232 terminal for a Raspberry Pi ([video](https://www.youtube.com/watch?v=Tq8d_-6dMOw)), and for a SWTPC 6800 microcomputer.  Along the way, I've started to get interested in writing Z80 applications to run on the analyzer too.
 
 This repo includes:
 
