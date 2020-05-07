@@ -27,7 +27,7 @@ Controls are:
 * Up/Down/Left/Right keys: turn to the corresponding direction
 * EXIT: exit the game.
 
-Eat the charms to increase your score.  Don't crash into anything!
+Eat the charms to grow longer and increase your score.  Don't crash into anything!
 
 
 ## Other notes
@@ -39,5 +39,6 @@ I think the game is playable.  Let me know any bugs you find, and any features y
 
 ### TODO
 
-- shorten the tail as we go (work!!)
 - better exit info screen including score
+- don't stop to animate the food
+

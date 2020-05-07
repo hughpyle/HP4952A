@@ -92,9 +92,14 @@ _splash_end:
 ;; - if nothing changed, we hit a wall (it was already set).
 
 ; consts
-_food_char: equ 07fh
+_food_char1: equ 07fh
+_food_char2: equ 092h
+_food_char3: equ 080h
+_food_char4: equ 081h
+_food_char5: equ 0a0h
 _space_char: equ 020h
 _quad_fill_char: equ 0bfh
+_quad_none_char: equ 0b0h
 _special_fill_char: equ 0e4h
 _scrattr_food: equ 083h			; normal
 
@@ -126,9 +131,13 @@ _main_loop:
 	jr z, _exit_prompt
 	cp _key_more
 	call z, _go_faster
+	cp _key_h
+	call z, _go_hyper
 
 _main_loop_continues:
 	call _move_one_step
+	call _tail_put_position
+	call _tail_remove_end
 	call _make_food
 	call _status_display
 
@@ -181,26 +190,22 @@ _turn_right:
 ; to go faster, decrement the delay-ticks a few times (no further than 1)
 _go_faster:
 	ld a, (_delay_ticks)
+;	dec a
+;	jr z, _main_loop_continues
+;	dec a
+;	jr z, _main_loop_continues
 	dec a
 	jr z, _main_loop_continues
 	dec a
 	jr z, _main_loop_continues
 	dec a
 	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
+	ld (_delay_ticks), a
+	ret
+
+_go_hyper:
+	; the only way to know what enough is, is to know what more-than-enough is
+	ld a, 1
 	ld (_delay_ticks), a
 	ret
 
@@ -302,7 +307,15 @@ _move_done:
 
 	;; hit-test for food or borders
 	call _get_char_on_board
-	cp _food_char 	; food
+	cp _food_char1 	; food
+	jr z, _eat
+	cp _food_char2
+	jr z, _eat
+	cp _food_char3
+	jr z, _eat
+	cp _food_char4
+	jr z, _eat
+	cp _food_char5
 	jr z, _eat
 	cp 099h 	; border
 	jr z, _die
@@ -328,21 +341,46 @@ _update_char_at:
 	; save a copy of the character in c for later
 	ld c, a
 
-	; it's 0x20 or (0xb0 plus pixels)
-	; after this it'll be (0xb0 plus pixels) or maybe _special_fill_char
-	or 0b0h
+	; it's 0x20 or (_quad_none_char plus pixels)
+	; after this it'll be (_quad_none_char plus pixels) or maybe _special_fill_char
+	or _quad_none_char
 	ld b, a
 
 	ld a, _scrattr_graphics
 	ld (_text_attr), a
 
+	ld hl, (_position)
+	call _get_quadrant_bits
+	or b
+
+	; special test for "all quadrants set" because the character doesn't fill (!),
+	; so instead use 0E4h (space) with "invert" attr 8b
+	cp _quad_fill_char
+	jr nz, _not_all_filled
+	ld a, _scrattr_ascii_i
+	ld (_text_attr), a
+	ld a, _special_fill_char
+
+_not_all_filled:
+	; Test whether it's different (c!=a)
+	; If the same as original, we hit something that was already there
+	; i.e. the snake ran into its tail, & die.
+	cp c
+	jr z, _die_2
+
+	; ok, paint
+	call _put_char_on_board
+	ret
+
+
+_get_quadrant_bits:
+	; return the bits in a, for the position in hl,
 	;; pixel characters for tail: $B0 plus "quadrant bits"
 	;;		0001 - 1 - upper left	- x is even, y is even
 	;;		0010 - 2 - upper right  - x is odd, y is even
 	;;		0100 - 4 - lower left   - x is even, y is odd
 	;;		1000 - 8 - lower right  - x is odd, y is odd
 	;; (x=h, y=l) pixel-coordinates
-	ld hl, (_position)
 	ld a, h
 	and 001h
 	sla a
@@ -358,46 +396,24 @@ _update_char_at:
 	cp 000h
 	jr nz, _what1
 	ld a, 001h
-	jr _add_the_pixel
+	ret
 _what1:
 	cp 010h
 	jr nz, _what2
 	ld a, 002h
-	jr _add_the_pixel
+	ret
 _what2:
 	cp 001h
 	jr nz, _what3
 	ld a, 004h
-	jr _add_the_pixel
+	ret
 _what3:
 	cp 011h
-	jr nz, _add_the_pixel
+	jr nz, _what4
 	ld a, 008h
-_add_the_pixel:
-	or b
-
-	; special test for "all quadrants set" because the character doesn't fill (!),
-	; so instead use 0E4h (space) with "invert" attr 8b
-	cp _quad_fill_char
-	jr nz, _not_all_filled
-	ld a, _scrattr_ascii_i
-	ld (_text_attr), a
-	ld a, _special_fill_char
-
-_not_all_filled:
-	; save for display
-	ld (_cur_cell), a
-
-	; Test whether it's different (c!=a)
-	; If the same as original, we hit something that was already there
-	; i.e. the snake ran into its tail, & die.
-	cp c
-	jr z, _die_2
-
-	; ok, paint
-	call _put_char_on_board
+_what4:
 	ret
-
+	
 
 _eat:
 	; moar scoar
@@ -409,7 +425,10 @@ _eat:
 	ld (_have_food), a
 	; go faster
 	call _go_faster
-	; TODO extend the tail etc
+	; extend the tail
+	call _grow_tail
+	call _grow_tail
+	call _grow_tail
 	; animate
 	call _swallow
 	; clear the space where food was
@@ -425,6 +444,9 @@ _eat:
 
 _initialize_data:
 	; things that we reset after game-over
+	call _tail_init
+	ld hl, 01f18h
+	ld (_position), hl
 	ld a, 070h
 	ld (_delay_ticks), a
 	ld a, 0
@@ -538,8 +560,8 @@ _corners:
 _make_food:
 	; if we have food, nothing to do
 	ld a, (_have_food)
-	cp _food_char
-	ret z
+	cp 0
+	ret nz
 	call _xrnd
 	;; is that location available?  Yes if it's a space (0x20)
 	ld a, h
@@ -555,10 +577,27 @@ _make_food:
 	call _get_char_on_board
 	cp _space_char
 	ret nz		; something's there! - failed to make food, we'll try again later
-	ld a, _scrattr_food  ; flashing normal text
+	ld a, _scrattr_food	; normal text
 	ld (_text_attr), a
-	ld a, _food_char
+	ld a, 1
 	ld (_have_food), a
+
+	; choose a random food-char with decreasing likelihood
+;	call _xrnd
+	ld a, _food_char1
+	bit 4, l
+	jr z, _made_food
+	ld a, _food_char2
+	bit 5, l
+	jr z, _made_food
+	ld a, _food_char3
+	bit 6, l
+	jr z, _made_food
+	ld a, _food_char4
+	bit 7, l
+	jr z, _made_food
+	ld a, _food_char5
+_made_food:
 	call _put_char_on_board
 	ret
 
@@ -603,7 +642,7 @@ _start_prompt:
 	ld hl, _str_start
 	call _writestring
 	call _getkey_pretendtropy
-	ld (_xrnd+1),hl
+	ld (_xrnd+1), hl
 	call _clear_screen
 	ret
 
@@ -633,13 +672,32 @@ _status_display:
 	ld (_text_attr), a
 	ld a, 001h				; Line 1
 	ld (_cur_y), a
-	ld a, 018h				; Column 24
+	ld a, 016h				; Column 22
 	ld (_cur_x), a
 
 	ld a, (_cur_score)
 	ld b, 0
 	ld c, a
 	push bc
+
+	; debug word
+;	ld hl, (_debug_word)
+;	ld b, 0
+;	ld c, l
+;	push bc
+;	ld b, 0
+;	ld c, h
+;	push bc
+
+	; debug bytes
+;	ld a, (_debug_byte2)
+;	ld b, 0
+;	ld c, a
+;	push bc
+;	ld a, (_debug_byte1)
+;	ld b, 0
+;	ld c, a
+;	push bc
 
 	ld hl, _str_status_display
 	push hl
@@ -664,6 +722,7 @@ _splode2:
 
 
 ; splode in reverse when we eat
+; TODO don't stop while this happens, do it one step at a time
 _swallow:
 	ld a, _scrattr_ascii_n
 	ld (_text_attr), a
@@ -679,16 +738,188 @@ _swallow2:
 	jr nz, _swallow2
 	ret
 
+;-- tail stuff
+;   TAIL_MAX_LEN: 			; (word) buffer size in bytes
+;	_tail_tail_location:    ; (word) contains address of final entry in the tail (the next one to be removed)
+;	_tail_actual_length:	; (word) how many pixels the tail is right now
+;	_tail_target_length:	; (word) length in pixels that the tail should grow to
+;	_tail_buff:	; space
+;	TAIL_BUFF_END: equ _tail_buff + TAIL_MAX_LEN - 1
+
+_tail_init:
+	ld hl, 00020h				; initial tail is quite long
+	ld (_tail_target_length), hl
+	ld hl, 00000h
+	ld (_tail_actual_length), hl
+	ld hl, _tail_buff
+	ld (_tail_tail_location), hl
+	ret
+
+_tail_put_position:
+	;; put the current _position in a new slot at the head (highest address) of the tail.
+
+	; increment the actual-length by one pixel
+	ld de, (_tail_actual_length)
+	inc de
+	ld (_tail_actual_length), de
+
+	; add (actual length * words) to tail-tail-location, wrapping if needed
+	; - that's the head of the tail, where we'll store new data
+	ld hl, (_tail_tail_location)
+	add hl, de
+	add hl, de
+	call _wrap_hl
+
+	; put the _position word (x=h, y=l) into (hl)
+	push hl
+	pop ix
+	ld hl, (_position)
+	ld (ix+0), l
+	ld (ix+1), h
+
+	ret
+
+_tail_remove_end:
+	;; If the tail is long enough,
+	; remove the last entry (lowest address),
+	; and update the display for the end of the tail.
+	ld hl, (_tail_target_length)	; pixels
+	ld bc, (_tail_actual_length)	; pixels
+	or a
+	sbc hl, bc
+	ret p			; no need to remove, target > actual
+
+	; the tail will be one pixel shorter after this
+	ld hl, (_tail_actual_length)	; pixels
+	dec hl
+	ld (_tail_actual_length), hl
+
+	; where is the block to remove?  Its position is in the buffer at _tail_tail_location
+	ld ix, (_tail_tail_location)
+	ld l, (ix+0)
+	ld h, (ix+1)
+	push hl
+;	ld (_debug_word), hl
+
+	; hl contains the _position word (x=h, y=l) in "pixel coordinates".
+	or a
+	srl h	;; convert from pixels to screen-coordinates
+	or a
+	srl l	;; convert from pixels to screen-coordinates
+	ld a, l
+	ld (_cur_y), a
+	ld a, h
+	ld (_cur_x), a
+
+	ld a, _scrattr_graphics
+	ld (_text_attr), a
+
+	; get the 4-pixel block at (cur_x, cur_y) into a
+	call _get_char_on_board
+	; it should be $B0 plus "quadrant bits"
+	;;		0001 - 1 - upper left	- x is even, y is even
+	;;		0010 - 2 - upper right  - x is odd, y is even
+	;;		0100 - 4 - lower left   - x is even, y is odd
+	;;		1000 - 8 - lower right  - x is odd, y is odd
+	; but "all quadrants" (_quad_fill_char) is instead _special_fill_char
+	cp _special_fill_char
+	jr nz, _pixels
+	ld a, _quad_fill_char
+_pixels:
+	ld b, a
+;	ld (_debug_byte1), a
+
+	; ok we can knock out the relevant pixel now
+	pop hl
+	call _get_quadrant_bits  ; return the bits in a, for the position in hl,
+	xor 0ffh
+	and b
+	; if no bits are set anymore, use _space_char not $B0
+	cp _quad_none_char
+	jr nz, _update
+	ld a, _scrattr_ascii_n
+	ld (_text_attr), a
+	ld a, _space_char
+_update:
+	; update the screen
+;	ld (_debug_byte2), a
+	call _put_char_on_board
+
+	; Save the new end-of-tail pointer, one word higher
+	ld hl, (_tail_tail_location)
+	inc hl
+	inc hl
+	call _wrap_hl
+	ld (_tail_tail_location), hl
+
+	ret
+
+_wrap_hl:
+	; hl should be a pointer into the _tail_buff,
+	; so if it's beyond TAIL_BUFF_END, substract the size of the buffer (TAIL_MAX_LEN).
+	; Stomps on a, bc, de.  Returns new value in hl.
+	push hl
+	ld bc, 0
+	call _how_much_do_we_need_to_subtract
+	pop hl
+	or a
+	sbc hl, bc
+	ret
+_how_much_do_we_need_to_subtract:
+	; amount to subtract is returned in bc
+	ld de, TAIL_BUFF_END
+	or a
+	sbc hl, de
+	ret m			; if negative: tail-buff-end is > hl, don't need to subtract anything
+	ld bc, TAIL_MAX_LEN
+	ret
+
+
+_grow_tail:
+	; make the tail "target length" longer, if we can
+	ld hl, TAIL_MAX_LEN
+	ld bc, (_tail_target_length)
+	or a
+	sbc hl, bc
+	ret m			; return if negative: target > hard max
+	inc bc
+	ld (_tail_target_length), bc
+	ret
+
+
+
 ; ======================== ------ data area ------ =========================
 
-;; todo store tail positions and trim the tail as we go
+; Circular buffer for the tail.
+;
+; Each tail location stores a word (x, y) position.
+; The next move, the new position is stored at the next+1 word.
+; At each move, the "tail of the tail" will be shortened (unless the tail is too short already).
 
-;; todo animated bit signal
-;;  8C - high
-;;  8D - low
-;;  8E - low-to-high edge
-;;  8F - high-to-low edge
-;;  A0 - hf pulse
+TAIL_MAX_LEN: equ 00400h ; (word) length of the buffer, in bytes
+
+_tail_actual_length:
+	; how many pixels the tail is right now
+	defw 0
+
+_tail_target_length:
+	; length in pixels that the tail should grow to
+	; adjust this to make the tail grow (NB it's a word, not a byte)
+	defw 8
+
+_tail_buff:
+	; space
+	defs TAIL_MAX_LEN, 0
+
+_tail_buff_spare:
+	; did someone mess up their pointer arithmetic? of course they did
+	defs 4, 0
+
+TAIL_BUFF_END: equ _tail_buff + TAIL_MAX_LEN - 1
+
+_tail_tail_location:
+	; address of final entry in the tail (the next one to be removed)
+	defw _tail_buff
 
 
 _str_exit:
@@ -704,7 +935,9 @@ _str_hex:
 	defb "%x", 000h
 
 _str_status_display:
-	defb "Score %d", 000h
+;	defb "%x%x %d", 000h	; for _debug_word
+;	defb "%x %x %d", 000h	; for _debug_byte1/2
+	defb "Score %d", 000h	; for real
 
 ;; head of the snake
 _orientation:
@@ -713,31 +946,30 @@ _orientation:
 	defb 002h
 
 _position:
-	;; bytes (x=h, y=l) in "pixel coordinates".
+	;; Position of the head.  Bytes (x=h, y=l) in "pixel coordinates".
 	;; Pixel-coordinates are 2x screen-coordinates since we have 2 pixels per character,
 	;; so x from 0-63, y from 0-31
 	defw 01f18h
+
+_debug_byte1:
+	; just something to debug with
+	defb 0
+
+_debug_byte2:
+	; just something to debug with
+	defb 0
+
+_debug_word:
+	; just something to debug with
+	defw 0
 
 _cur_score:
 	;; yes we keep the score
 	defb 000h
 
-_cur_cell:
-	;; contents of the current cell
-	defb 000h
-
 _game_in_progress:
 	; not did we lose yet
 	defb 001h
-
-;; tail of the snake
-_tail_orientation:
-	defb 001h
-
-_tail_position:
-	;; bytes (x=h, y=l) in "pixel coordinates".
-    defw 01f18h
-
 
 _delay_ticks:
 	; decrement this until morale improves
@@ -766,6 +998,6 @@ _code_end:
 
 ;; Fill to end of file
 	org 0b0ffh
-	seek 010ffh
+	seek 018ffh
 	defb 000h
 _file_end:
