@@ -36,3 +36,9 @@ This is my first time writing Z80 assembly language in a very long time.  Thanks
 
 I think the game is playable.  Let me know any bugs you find, and any features you want!
 
+
+## TODO
+
+Known bugs:
+- There's an off-by-one bug somewhere in the tail initialization.  Results in an occasional spurious block appearing shortly after the game starts.
+- For some reason the app doesn't run when loaded from disk.
