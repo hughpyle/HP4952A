@@ -76,7 +76,7 @@ _splash_end:
 
 ;; The screen has 16 rows of 32 characters, each char is 
 ;; - blank: 020h (space), or 
-;; - food: 07fh
+;; - food: 07fh (or other variations)
 ;; - border: $99 thru $9c
 ;; - whatever's in the score display
 ;; - tail: $B0 plus "quadrant bits"
@@ -131,8 +131,8 @@ _main_loop:
 	jr z, _exit_prompt
 	cp _key_more
 	call z, _go_faster
-	cp _key_h
-	call z, _go_hyper
+	cp _key_space
+	call z, _go_pause
 
 _main_loop_continues:
 	call _move_one_step
@@ -187,29 +187,6 @@ _turn_right:
 	jr _main_loop_continues
 
 
-; to go faster, decrement the delay-ticks a few times (no further than 1)
-_go_faster:
-	ld a, (_delay_ticks)
-;	dec a
-;	jr z, _main_loop_continues
-;	dec a
-;	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	dec a
-	jr z, _main_loop_continues
-	ld (_delay_ticks), a
-	ret
-
-_go_hyper:
-	; the only way to know what enough is, is to know what more-than-enough is
-	ld a, 1
-	ld (_delay_ticks), a
-	ret
-
-
 _exit_prompt:
 	call _clear_screen
 
@@ -258,6 +235,7 @@ _die:
 	call _splode
 	; TODO pop the stack fwiw
 	jr _exit_prompt
+
 
 
 _move_one_step:
@@ -452,46 +430,65 @@ _initialize_data:
 	ld a, 0
 	ld (_have_food), a
 	ld (_cur_score), a
+	ld a, 002h
+	ld (_orientation), a
 	ret
 
-_getkey_until_delay:
-	; test the keyboard until anything happens,
-	; or the delay countdown,
-	; returning any key in A
+
+; to go faster, decrement the delay-ticks (no further than 1)
+_go_faster:
+	; delay_ticks starts at ~70h (112).  We want to reduce it by
+	; a percentage, not by a specific number, so that the speed
+	; (1/delay) increases by the same percentage each time.
+	;
+	; To calculate 90%:
+	; - divide by 256 and multiply by 26 => ~10%
+	; - subtract that from the original delay
 	ld a, (_delay_ticks)
-	ld b, a
-_getkey_until2:
-	call _keyscan
-	call _getkey_nowait
-	cp _key_none
-	ret nz
-	dec b
-	jr nz, _getkey_until2
+	ld d, 0
+	ld h, d
+	ld l, a
+	add hl,hl
+	add hl,de
+	add hl,hl
+	add hl,hl
+	add hl,de
+	add hl,hl
+	; if h is zero, delay is <10, just decrement
+	ld a, h
+	cp 0
+	jr nz, _go_faster2
+	ld h, 1
+_go_faster2:
+	ld a, (_delay_ticks)
+	sub h
+	cp 0
+	ret z
+	ld (_delay_ticks), a
+	ret
+	
+
+_go_pause:
+	ld a, 1
+	ld (_cur_x), a
+	ld (_cur_y), a
+	call _get_char_on_board
+	push af
+	; flashing wait
+	ld a, _scrattr_flash + _scrattr_ascii_n
+	ld (_text_attr), a
+	ld a, 08bh
+	call _put_char_on_board
+	; wait until any other keypress
+	call _getkey_wait
+
+	; restore normalcy
+	ld a, _scrattr_ascii_n
+	ld (_text_attr), a
+	pop af
+	call _put_char_on_board
 	ret
 
-_getkey_pretendtropy:
-	; test the keyboard until anything happens
-	; (except F5 because that just started the app),
-	; return a fairly-random thing in HL
-	ld bc, 0ffffh ; counter
-_getkey_pretendtropy2:
-	dec bc
-	call _keyscan
-	call _getkey_nowait
-	cp _key_f5
-	jr z, _getkey_pretendtropy2
-	cp _key_none
-	jr z, _getkey_pretendtropy2
-	push bc
-	ld hl, 0000h
-	ld bc, 0000h
-	cpdr
-	xor h
-	pop bc
-	xor b
-	xor c
-	ld h, a
-	ret
 
 ;; When the snake goes off the board, game over.
 ;; So it's good to draw a border around the board.
@@ -565,13 +562,21 @@ _make_food:
 	call _xrnd
 	;; is that location available?  Yes if it's a space (0x20)
 	ld a, h
-	and 01fh		; x, 0 to 31
-	inc a
+	and 01fh		; x, 0 to 31 (note, only 2 thru 30 are available)
+	inc a			; 1 to 32
+	inc a			; 2 to 33
+	and 01fh
+	cp 2			; must be >=2
+	ret c
 	ld (_cur_x), a
 	ld (_food_x), a
 	ld a, l
-	and 00fh		; y, 0 to 15
+	and 00fh		; y, 0 to 15 (note, only 2 thru 14 are available)
 	inc a
+	inc a
+	and 00fh
+	cp 2			; must be >=2
+	ret c
 	ld (_cur_y), a
 	ld (_food_y), a
 	call _get_char_on_board
@@ -583,7 +588,6 @@ _make_food:
 	ld (_have_food), a
 
 	; choose a random food-char with decreasing likelihood
-;	call _xrnd
 	ld a, _food_char1
 	bit 4, l
 	jr z, _made_food
@@ -599,33 +603,6 @@ _make_food:
 	ld a, _food_char5
 _made_food:
 	call _put_char_on_board
-	ret
-
-
-; 16-bit xorshift pseudorandom number generator
-; source: http://www.retroprogramming.com/2017/07/xorshift-pseudorandom-numbers-in-z80.html
-; 20 bytes, 86 cycles (excluding ret)
-;
-; returns   hl = pseudorandom number
-_xrnd:
-	ld hl,5       ; seed must not be 0
-
-	ld a,h
-	rra
-	ld a,l
-	rra
-	xor h
-	ld h,a
-	ld a,l
-	rra
-	ld a,h
-	rra
-	xor l
-	ld l,a
-	xor h
-	ld h,a
-
-	ld (_xrnd+1),hl
 	ret
 
 
@@ -738,189 +715,6 @@ _swallow2:
 	jr nz, _swallow2
 	ret
 
-;-- tail stuff
-;   TAIL_MAX_LEN: 			; (word) buffer size in bytes
-;	_tail_tail_location:    ; (word) contains address of final entry in the tail (the next one to be removed)
-;	_tail_actual_length:	; (word) how many pixels the tail is right now
-;	_tail_target_length:	; (word) length in pixels that the tail should grow to
-;	_tail_buff:	; space
-;	TAIL_BUFF_END: equ _tail_buff + TAIL_MAX_LEN - 1
-
-_tail_init:
-	ld hl, 00020h				; initial tail is quite long
-	ld (_tail_target_length), hl
-	ld hl, 00000h
-	ld (_tail_actual_length), hl
-	ld hl, _tail_buff
-	ld (_tail_tail_location), hl
-	ret
-
-_tail_put_position:
-	;; put the current _position in a new slot at the head (highest address) of the tail.
-
-	; increment the actual-length by one pixel
-	ld de, (_tail_actual_length)
-	inc de
-	ld (_tail_actual_length), de
-
-	; add (actual length * words) to tail-tail-location, wrapping if needed
-	; - that's the head of the tail, where we'll store new data
-	ld hl, (_tail_tail_location)
-	add hl, de
-	add hl, de
-	call _wrap_hl
-
-	; put the _position word (x=h, y=l) into (hl)
-	push hl
-	pop ix
-	ld hl, (_position)
-	ld (ix+0), l
-	ld (ix+1), h
-
-	ret
-
-_tail_remove_end:
-	;; If the tail is long enough,
-	; remove the last entry (lowest address),
-	; and update the display for the end of the tail.
-	ld hl, (_tail_target_length)	; pixels
-	ld bc, (_tail_actual_length)	; pixels
-	or a
-	sbc hl, bc
-	ret p			; no need to remove, target > actual
-
-	; the tail will be one pixel shorter after this
-	ld hl, (_tail_actual_length)	; pixels
-	dec hl
-	ld (_tail_actual_length), hl
-
-	; where is the block to remove?  Its position is in the buffer at _tail_tail_location
-	ld ix, (_tail_tail_location)
-	ld l, (ix+0)
-	ld h, (ix+1)
-	push hl
-;	ld (_debug_word), hl
-
-	; hl contains the _position word (x=h, y=l) in "pixel coordinates".
-	or a
-	srl h	;; convert from pixels to screen-coordinates
-	or a
-	srl l	;; convert from pixels to screen-coordinates
-	ld a, l
-	ld (_cur_y), a
-	ld a, h
-	ld (_cur_x), a
-
-	ld a, _scrattr_graphics
-	ld (_text_attr), a
-
-	; get the 4-pixel block at (cur_x, cur_y) into a
-	call _get_char_on_board
-	; it should be $B0 plus "quadrant bits"
-	;;		0001 - 1 - upper left	- x is even, y is even
-	;;		0010 - 2 - upper right  - x is odd, y is even
-	;;		0100 - 4 - lower left   - x is even, y is odd
-	;;		1000 - 8 - lower right  - x is odd, y is odd
-	; but "all quadrants" (_quad_fill_char) is instead _special_fill_char
-	cp _special_fill_char
-	jr nz, _pixels
-	ld a, _quad_fill_char
-_pixels:
-	ld b, a
-;	ld (_debug_byte1), a
-
-	; ok we can knock out the relevant pixel now
-	pop hl
-	call _get_quadrant_bits  ; return the bits in a, for the position in hl,
-	xor 0ffh
-	and b
-	; if no bits are set anymore, use _space_char not $B0
-	cp _quad_none_char
-	jr nz, _update
-	ld a, _scrattr_ascii_n
-	ld (_text_attr), a
-	ld a, _space_char
-_update:
-	; update the screen
-;	ld (_debug_byte2), a
-	call _put_char_on_board
-
-	; Save the new end-of-tail pointer, one word higher
-	ld hl, (_tail_tail_location)
-	inc hl
-	inc hl
-	call _wrap_hl
-	ld (_tail_tail_location), hl
-
-	ret
-
-_wrap_hl:
-	; hl should be a pointer into the _tail_buff,
-	; so if it's beyond TAIL_BUFF_END, substract the size of the buffer (TAIL_MAX_LEN).
-	; Stomps on a, bc, de.  Returns new value in hl.
-	push hl
-	ld bc, 0
-	call _how_much_do_we_need_to_subtract
-	pop hl
-	or a
-	sbc hl, bc
-	ret
-_how_much_do_we_need_to_subtract:
-	; amount to subtract is returned in bc
-	ld de, TAIL_BUFF_END
-	or a
-	sbc hl, de
-	ret m			; if negative: tail-buff-end is > hl, don't need to subtract anything
-	ld bc, TAIL_MAX_LEN
-	ret
-
-
-_grow_tail:
-	; make the tail "target length" longer, if we can
-	ld hl, TAIL_MAX_LEN
-	ld bc, (_tail_target_length)
-	or a
-	sbc hl, bc
-	ret m			; return if negative: target > hard max
-	inc bc
-	ld (_tail_target_length), bc
-	ret
-
-
-
-; ======================== ------ data area ------ =========================
-
-; Circular buffer for the tail.
-;
-; Each tail location stores a word (x, y) position.
-; The next move, the new position is stored at the next+1 word.
-; At each move, the "tail of the tail" will be shortened (unless the tail is too short already).
-
-TAIL_MAX_LEN: equ 00400h ; (word) length of the buffer, in bytes
-
-_tail_actual_length:
-	; how many pixels the tail is right now
-	defw 0
-
-_tail_target_length:
-	; length in pixels that the tail should grow to
-	; adjust this to make the tail grow (NB it's a word, not a byte)
-	defw 8
-
-_tail_buff:
-	; space
-	defs TAIL_MAX_LEN, 0
-
-_tail_buff_spare:
-	; did someone mess up their pointer arithmetic? of course they did
-	defs 4, 0
-
-TAIL_BUFF_END: equ _tail_buff + TAIL_MAX_LEN - 1
-
-_tail_tail_location:
-	; address of final entry in the tail (the next one to be removed)
-	defw _tail_buff
-
 
 _str_exit:
 	defb " Are you sure you want to exit? ", 000h
@@ -931,12 +725,9 @@ _str_over:
 _str_start:
 	defb "Press any key to start", 000h
 
-_str_hex:
-	defb "%x", 000h
-
 _str_status_display:
 ;	defb "%x%x %d", 000h	; for _debug_word
-;	defb "%x %x %d", 000h	; for _debug_byte1/2
+;	defb "%x-%x %d", 000h	; for _debug_byte1/2
 	defb "Score %d", 000h	; for real
 
 ;; head of the snake
@@ -963,10 +754,6 @@ _debug_word:
 	; just something to debug with
 	defw 0
 
-_cur_score:
-	;; yes we keep the score
-	defb 000h
-
 _game_in_progress:
 	; not did we lose yet
 	defb 001h
@@ -985,13 +772,18 @@ _have_food:
 	; nonzero if there's food
 	; (should always be nonzero)
 	defb 000h
-	
+
+
+include "xrnd.asm"
+include "snek_getkey.asm"
+include "snek_tail.asm"
+include "snek_score.asm"
 
 include "lib/delay.asm"
 include "lib/screen.asm"
 include "lib/string.asm"
 include "lib/printf.asm"
-include "lib/keyb.asm"
+
 
 _code_end:
 ;; End of Main Application
