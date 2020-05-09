@@ -77,6 +77,8 @@ _tail_remove_end:
 
 	; get the 4-pixel block at (cur_x, cur_y) into a
 	call _get_char_on_board
+	cp 020h
+	jr z, _pixels
 	; it should be $B0 plus "quadrant bits"
 	;;		0001 - 1 - upper left	- x is even, y is even
 	;;		0010 - 2 - upper right  - x is odd, y is even

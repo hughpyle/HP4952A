@@ -15,7 +15,7 @@ _splash_screen_data:
 	defb 0ffh
 
 	defb 003h, 008h, _scrattr_ascii_n
-	defb "get ready to play", 000h
+	defb "get ready to play", 000h			; (17)
 	defb 006h, 00fh, _scrattr_ascii_n
 	defb "snek", 000h
 	defb 009h, 009h, _scrattr_ascii_n
@@ -109,6 +109,7 @@ _scrattr_food: equ 083h			; normal
 _code_start:
 _app_main:
 	call _start_prompt
+_app_start:
 	call _initialize_data
 	call _clear_screen
 	call _draw_borders
@@ -143,6 +144,12 @@ _main_loop_continues:
 
 	jr _main_loop
 
+
+_die2:
+	call _endgame
+	cp _key_exit
+	jr z, _real_exit
+	jr _app_start
 
 
 ;; ---- main-loop routines (jump back to main-loop) ----
@@ -187,22 +194,18 @@ _turn_right:
 	jr _main_loop_continues
 
 
+; "Are you sure you want to exit" prompt
 _exit_prompt:
 	call _clear_screen
 
+	; ask "play again?"
 	ld a, _scrattr_ascii_n			; Normal Text
 	ld (_text_attr), a
 	ld a, 008h						; Line 1 (Top)
 	ld (_cur_y), a
 	ld a, 001h						; Column 1 (Left)
 	ld (_cur_x), a
-
 	ld hl, _str_exit
-	ld a, (_game_in_progress)
-	cp 0
-	jr nz, _exit_not_over 
-	ld hl, _str_over
-_exit_not_over:
 	call _writestring
 _wait_exit:
 	call _getkey_wait
@@ -210,32 +213,28 @@ _wait_exit:
 	jr z, _real_exit
 	cp 'Y'
 	jr z, _real_exit
-
 	cp 'n'
-	jp z, _app_main
+	jp z, _app_start
 	cp 'N'
-	jp z, _app_main
-
+	jp z, _app_start
 	jr _wait_exit
+
 
 _real_exit:
 	call _clear_screen
-
 	jp 014d5h				; Return to main menu.
-
 
 
 ; ======================== ------ subroutines ------ =========================
 
 
 _die:
+	; TODO pop the stack fwiw? (I forget what called us)
 	ld a, 0
 	ld (_game_in_progress), a
 	call _splode
 	call _splode
-	; TODO pop the stack fwiw
-	jr _exit_prompt
-
+	jr _die2
 
 
 _move_one_step:
@@ -432,6 +431,14 @@ _initialize_data:
 	ld (_cur_score), a
 	ld a, 002h
 	ld (_orientation), a
+	ld a, 1
+	ld (_game_in_progress), a
+	ld b, _twinkle_data_len-1
+	ld hl, _twinkle_data
+_init_twinkle_data:
+	inc hl
+	ld (hl), 0
+	djnz _init_twinkle_data
 	ret
 
 
@@ -559,34 +566,17 @@ _make_food:
 	ld a, (_have_food)
 	cp 0
 	ret nz
-	call _xrnd
-	;; is that location available?  Yes if it's a space (0x20)
-	ld a, h
-	and 01fh		; x, 0 to 31 (note, only 2 thru 30 are available)
-	inc a			; 1 to 32
-	inc a			; 2 to 33
-	and 01fh
-	cp 2			; must be >=2
-	ret c
-	ld (_cur_x), a
+	; find somewhere for the food to go
+	call _find_empty_space
+	; put food there
+	ld a, (_cur_x)
 	ld (_food_x), a
-	ld a, l
-	and 00fh		; y, 0 to 15 (note, only 2 thru 14 are available)
-	inc a
-	inc a
-	and 00fh
-	cp 2			; must be >=2
-	ret c
-	ld (_cur_y), a
+	ld a, (_cur_y)
 	ld (_food_y), a
-	call _get_char_on_board
-	cp _space_char
-	ret nz		; something's there! - failed to make food, we'll try again later
 	ld a, _scrattr_food	; normal text
 	ld (_text_attr), a
 	ld a, 1
 	ld (_have_food), a
-
 	; choose a random food-char with decreasing likelihood
 	ld a, _food_char1
 	bit 4, l
@@ -620,8 +610,36 @@ _start_prompt:
 	call _writestring
 	call _getkey_pretendtropy
 	ld (_xrnd+1), hl
-	call _clear_screen
 	ret
+
+
+; Find an empty location on the screen.
+; Set it into (_cur_x, _cur_y).
+; Also sets hl to something random.
+_find_empty_space:
+	call _xrnd
+	;; is that location available?  Yes if it's a space (0x20)
+	ld a, h
+	and 01fh		; x, 0 to 31 (note, only 2 thru 30 are available)
+	inc a			; 1 to 32
+	inc a			; 2 to 33
+	and 01fh
+	cp 2			; must be >=2
+	jr c, _find_empty_space
+	ld (_cur_x), a
+	ld a, l
+	and 00fh		; y, 0 to 15 (note, only 2 thru 14 are available)
+	inc a
+	inc a
+	and 00fh
+	cp 2			; must be >=2
+	jr c, _find_empty_space
+	ld (_cur_y), a
+	call _get_char_on_board
+	cp _space_char
+	ret z			; ok
+	; found a non-empty space, try again
+	jr _find_empty_space
 
 
 ;; get the char on the board at (_cur_x, _cur_y), return a.
@@ -676,7 +694,7 @@ _status_display:
 ;	ld c, a
 ;	push bc
 
-	ld hl, _str_status_display
+	ld hl, _str_score
 	push hl
 	call _printf
 	ret
@@ -719,13 +737,10 @@ _swallow2:
 _str_exit:
 	defb " Are you sure you want to exit? ", 000h
 
-_str_over:
-	defb "Game over!  Do you want to exit?", 000h
-
 _str_start:
 	defb "Press any key to start", 000h
 
-_str_status_display:
+_str_score:
 ;	defb "%x%x %d", 000h	; for _debug_word
 ;	defb "%x-%x %d", 000h	; for _debug_byte1/2
 	defb "Score %d", 000h	; for real

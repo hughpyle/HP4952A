@@ -39,5 +39,4 @@ I think the game is playable.  Let me know any bugs you find, and any features y
 
 ### TODO
 
-- better exit info screen including score
 - don't stop to animate the food
