@@ -170,12 +170,16 @@ _tail_target_length:
 	; adjust this to make the tail grow (NB it's a word, not a byte)
 	defw 8
 
+_tail_buff_guard1:
+	; did someone mess up their pointer arithmetic? of course they did
+	defs 4, 0
+
 _tail_buff:
 	; space
 	defs TAIL_MAX_LEN, 0
 
-_tail_buff_spare:
-	; did someone mess up their pointer arithmetic? of course they did
+_tail_buff_guard2:
+	; runaway like a train
 	defs 4, 0
 
 TAIL_BUFF_END: equ _tail_buff + TAIL_MAX_LEN - 1

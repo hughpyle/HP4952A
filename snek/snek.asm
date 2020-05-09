@@ -717,7 +717,6 @@ _splode2:
 
 
 ; splode in reverse when we eat
-; TODO don't stop while this happens, do it one step at a time
 _swallow:
 	ld a, _scrattr_ascii_n
 	ld (_text_attr), a
