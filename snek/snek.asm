@@ -788,10 +788,10 @@ _have_food:
 	defb 000h
 
 
-include "xrnd.asm"
 include "snek_getkey.asm"
 include "snek_tail.asm"
 include "snek_score.asm"
+include "xrnd.asm"
 
 include "lib/delay.asm"
 include "lib/screen.asm"
@@ -804,6 +804,6 @@ _code_end:
 
 ;; Fill to end of file
 	org 0b0ffh
-	seek 018ffh
+	seek 020ffh
 	defb 000h
 _file_end:

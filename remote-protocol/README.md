@@ -86,7 +86,7 @@ Observing the log data and using `strings` on 5XREMOTE shows these commands belo
 
 ## Try it!
 
-This [small python application](comms) an send applications to the analyzer.
+This [small python application](comms) can send applications to the analyzer.
 
 Requires python 3.7 or later,
 ```

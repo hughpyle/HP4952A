@@ -15,7 +15,8 @@ _file_start:
 _filesize:
 	org 0a102h
 	seek 00102h
-	defw ((_file_end - _file_start) / 256)-1				; Blocks in file - 1
+	; defw ((_file_end - _file_start) / 256)-1				; Blocks in file - 1
+	defw 0020h
 
 	defb " HP4952 HAX       4952  "
 	defw 00800h
